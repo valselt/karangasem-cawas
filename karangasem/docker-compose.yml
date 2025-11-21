@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+
+  app:
+    build: .
+    container_name: PHP-FPM
+    expose:
+      - "9000"
+    volumes:
+      - ./src:/var/www/html
+    restart: unless-stopped
+    networks:
+      - default         # Agar tetap bisa berkomunikasi dengan Nginx di bawah
+      - shared_network  # Agar bisa "keluar" mengakses mysql_db (MySQL Pusat)
+
+  nginx:
+    image: nginx:latest
+    container_name: NGINX
+    ports:
+      - "7891:80"       # Port akses web tetap di 7891
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./src:/var/www/html
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - default         # Nginx cukup di network default saja
+
+# Definisi Network Eksternal (Jembatan ke MySQL Pusat)
+networks:
+  shared_network:
+    external: true

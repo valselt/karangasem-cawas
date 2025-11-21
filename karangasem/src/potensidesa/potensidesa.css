@@ -1,0 +1,248 @@
+@import "../_config.css";
+
+.container-potensi {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  gap: 1rem;
+  margin: 4.5rem 1.5rem;
+}
+
+.section-1-potensi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 3rem 2rem 1rem 2rem;
+
+  /* Properti background-image dihapus */
+
+  padding: 12rem 2rem;
+  border-radius: 3rem;
+  color: white;
+
+  /* --- TAMBAHKAN INI --- */
+  position: relative; /* Untuk menjadi 'jangkar' video */
+  overflow: hidden; /* Untuk memotong video sesuai border-radius */
+  z-index: 1; /* Untuk menempatkan konten di depan */
+}
+
+/* --- TAMBAHKAN CSS BARU INI --- */
+
+/* 1. Atur posisi video */
+.potensi-bg-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2; /* Kirim ke paling belakang */
+}
+
+/* 2. Tambahkan overlay gelap (seperti di homepage) */
+.section-1-potensi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 0.2; /* Sesuaikan opacity jika perlu */
+  z-index: -1; /* Posisikan di antara video dan teks */
+}
+
+.text-title-potensi{
+  font-weight: bolder;
+  font-size: 5rem;
+}
+
+.section-2-potensi {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.potensi-informasi {
+  display: flex;
+  flex-direction: row;
+  background-color: #f9f9f9;
+  border-radius: 3rem;
+  margin: 0rem 2rem 1rem 2rem;
+
+  overflow: hidden; /* Penting agar gambar tidak bocor */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+.potensi-informasi-1 {
+  flex-basis: 40%; /* 1c: Lebar awal 40% */
+
+  position: relative;
+  transition: height 0.4s ease-in-out;
+
+}
+
+.potensi-informasi-1 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Gambar mengikuti ruang yang tersedia */
+  display: block;
+
+  padding: 1rem; /* Padding yang Anda inginkan */
+  box-sizing: border-box; /* Padding tidak akan menambah tinggi */
+  border-radius: 3rem;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.potensi-informasi-2 {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 60%; /* 1c: Lebar awal 60% */
+  padding: 2rem;
+  transition: none;
+}
+
+.potensi-informasi-2-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.potensi-informasi-2-title .text-title {
+  flex-grow: 1; /* Dorong tombol ke kanan */
+}
+
+.potensi-informasi-2-content {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.5;
+
+  /* 1b: Konten hanya 2 baris */
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  max-height: calc(0.9rem * 1.5 * 2);
+  transition: max-height 0.4s ease-in-out;
+}
+
+/* 1a: Mengatur ikon yang tampil */
+/* 1a: Mengatur ikon yang tampil (MENGGUNAKAN :first-child) */
+a[id^="accordion-opener-"] span:last-child {
+  display: none;
+}
+a[id^="accordion-opener-"] span:first-child {
+  display: block;
+}
+
+/* === STATE TERBUKA (SAAT .open DITAMBAHKAN) === */
+
+.potensi-informasi.open .potensi-informasi-1 {
+
+}
+.potensi-informasi.open .potensi-informasi-2 {
+
+}
+
+/* 2a: Mengatur ikon yang tampil */
+/* 2a: Mengatur ikon yang tampil (MENGGUNAKAN :first-child) */
+.potensi-informasi.open a[id^="accordion-opener-"] span:last-child {
+  display: block;
+}
+.potensi-informasi.open a[id^="accordion-opener-"] span:first-child {
+  display: none;
+}
+
+.potensi-button {
+  background-color: #e5eaf1;
+  color: black;
+  border-radius: 5rem;
+  padding: 0.5rem; /* Buat tombol sedikit lebih besar */
+  display: flex; /* Pusatkan ikon di dalamnya */
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.potensi-button:hover {
+  background-color: #d1d9e4;
+  transform: scale(1.05);
+}
+
+/* --- Tambahkan di paling bawah potensidesa.css --- */
+
+@media (max-width: 768px) {
+  /* 1. Sesuaikan margin/padding utama di HP */
+  .container-potensi {
+    margin: 6rem 1.5rem;
+  }
+  .section-1-potensi {
+    margin: 1rem 0;
+    padding: 7rem 1.5rem;
+    border-radius: 2rem;
+  }
+  .text-title-potensi{
+    font-size: 3rem;
+    font-weight: bolder !important;
+  }
+  .section-2-potensi {
+    margin: 0;
+    gap: 1.5rem;
+  }
+
+  /* 2. Ubah kartu menjadi vertikal (ditumpuk) */
+  .potensi-informasi {
+    flex-direction: column;
+    margin: 0 0 1rem 0; /* Hapus margin samping */
+    border-radius: 2rem;
+  }
+
+  /* 3. Sembunyikan gambar (informasi-1) secara default */
+  .potensi-informasi-1 {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden; /* Sembunyikan konten saat 0px */
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    flex-basis: auto; /* Reset lebar desktop */
+    width: 100%;
+
+    order: 2;
+  }
+
+  /* 4. Buat teks (informasi-2) mengisi penuh */
+  .potensi-informasi-2 {
+    flex-basis: auto; /* Reset lebar desktop */
+    width: 100%;
+    padding: 1.5rem;
+
+    order: 1; /* Sesuaikan padding untuk HP */
+  }
+
+  /* 5. Saat .open, TAMPILKAN gambar */
+  .potensi-informasi.open .potensi-informasi-1 {
+    opacity: 1;
+  }
+
+  /* 6. PENTING: Atur ulang style gambar untuk HP */
+  /* Kita harus membatalkan 'position: absolute' dari desktop */
+  .potensi-informasi-1 img {
+    position: relative; /* Kembalikan ke alur normal */
+    top: auto;
+    left: auto;
+
+    height: auto; /* Biarkan rasio aspek yang menentukan tinggi */
+    aspect-ratio: 16 / 9; /* Beri rasio 16:9 */
+
+    padding: 1rem; /* Padding Anda */
+    border-radius: 2.5rem; /* Sesuaikan radius */
+  }
+
+  /* 7. (Opsional) Kecilkan judul di HP */
+  .potensi-informasi-2-title .text-title {
+    font-size: 1.5rem;
+  }
+}

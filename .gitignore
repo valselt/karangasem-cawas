@@ -1,0 +1,11 @@
+# Abaikan file video besar
+*.mp4
+*.MP4
+*.mov
+*.avi
+
+# Abaikan folder data storage (Minio/Database)
+minio_storage/
+karangasem_admin/src/vendor/
+karangasem_admin/src/composer.json
+karangasem_admin/src/composer.lock

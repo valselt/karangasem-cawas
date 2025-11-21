@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_server
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: aldorino04
+      MYSQL_DATABASE: karangasem
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: aldorino04
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - shared_network
+    ports:
+      - "2937:3306"  # <--- UBAH DI SINI (Kiri: Host Laptop, Kanan: Internal Container)
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_gui
+    restart: always
+    environment:
+      PMA_HOST: mysql_db # phpMyAdmin tetap konek ke internal container (3306), jadi ini tidak perlu diubah
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "9999:80"
+    depends_on:
+      - mysql_db
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    name: shared_network
+    driver: bridge
+
+volumes:
+  mysql_data:

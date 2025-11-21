@@ -1,0 +1,681 @@
+@import "_config.css";
+
+.container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  gap: 1rem;
+}
+
+.section-1 {
+  height: 100vh;
+  margin: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+
+.section-1::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background-color: black;
+  opacity: 0.4;
+
+  z-index: 0;
+}
+
+.video-background {
+  position: absolute; /* Diposisikan relatif terhadap .section-1 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Memastikan video menutupi area tanpa gepeng */
+  z-index: -1; /* Meletakkan video di lapisan paling belakang */
+}
+
+.shell-section-1 {
+  display: flex;
+  flex-direction: column;
+
+  width: 50vw;
+  padding-right: 5rem;
+  gap: 1.5rem;
+
+  position: relative;
+  z-index: 1;
+}
+
+.section-1-2 {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.button-landingpage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.5rem;
+
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+
+  /* Bayangan dari contoh Anda */
+  box-shadow: 0 6px 6px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 0, 0, 0.1);
+
+  /* Transisi dari contoh Anda */
+  transition: all 0.4s ease;
+}
+
+.button-landingpage:hover {
+  /* 1. NAIK SEDIKIT (-8px) dan MEMBESAR (5%) */
+  transform: translateY(-2px) scale(1.05);
+
+  /* 2. SHADOW WARNA PUTIH (dan shadow angkat yang diperbarui) */
+  /* Kita gabungkan shadow gelap (untuk 'angkat') 
+     dan shadow putih (untuk 'glow') */
+  box-shadow: 
+    /* 1. Shadow gelap untuk ilusi 'terangkat' (10px ke bawah) */ 0
+      10px 20px rgba(0, 0, 0, 0.2),
+    /* 2. Shadow PUTIH, HANYA di bawah (15px ke bawah) */ 0 15px 20px
+      rgba(255, 255, 255, 0.2);
+}
+
+.section-2 {
+  display: flex;
+  flex-direction: column;
+  margin: 3rem 2rem;
+  gap: 2.5rem;
+}
+
+.section-2-1 {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.lokasidesa-button {
+  display: flex;
+  gap: 1rem;
+  color: white;
+}
+
+.other-button {
+  display: flex;
+  padding: 1rem;
+  border-radius: 2rem;
+  gap: 0.3rem;
+
+  background-color: #e5eaf1;
+  text-decoration: none;
+
+  color: black;
+
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+/* --- Tambahkan CSS BARU INI --- */
+
+/* 1. STYLING GRID CONTAINER (Desktop: 4 kolom) */
+.section-2-2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* default: desktop 16:9 → 4 kolom */
+  gap: 2rem;
+}
+
+/* 2. STYLING KARTU BERITA */
+.berita-landingpage {
+  /* Kunci agar .berita-info bisa diposisikan */
+  position: relative;
+
+  /* Membuat kartu terlihat bagus */
+  border-radius: 1rem;
+  overflow: hidden; /* Memotong gambar yang berlebih */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+  /* Membuat kartu responsif. 
+     Rasio 3:4 (lebar:tinggi). Ubah sesuai selera. */
+  aspect-ratio: 16 / 10;
+}
+
+/* 3. STYLING GAMBAR (Memenuhi kartu) */
+.berita-landingpage img {
+  display: block; /* Menghilangkan spasi bawah */
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Menutupi area tanpa gepeng */
+}
+
+/* 4. STYLING OVERLAY GRADASI + BLUR (Wrapper .berita-info) */
+/* 4. STYLING OVERLAY GRADASI + BLUR (Wrapper .berita-info) */
+.berita-info {
+  /* Posisi (tetap sama) */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%; /* Anda bisa sesuaikan ini jika perlu */
+
+  /* Styling Teks (tetap sama) */
+  color: black;
+  padding: 0.5rem;
+  transition: height 0.3s ease;
+  padding: 2rem 0.5rem 0.5rem 0.5rem;
+
+  /* 👇 TAMBAHKAN BARIS INI 👇 */
+  z-index: 1; /* Ini akan membawa overlay ke depan gambar */
+}
+/* 5. STYLING TEKS DI DALAM OVERLAY */
+.berita-info span {
+  font-weight: 700; /* Bold */
+  font-size: 0.9rem;
+
+  /* Mencegah teks panjang jadi 2 baris */
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.berita-info p {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* INI ADALAH RULE BARU UNTUK MEMBUAT EFEK GRADASI BLUR */
+.berita-info::before {
+  content: ""; /* Wajib untuk pseudo-element */
+
+  /* Posisikan agar menutupi .berita-info */
+  position: absolute;
+  inset: 0; /* (inset: 0; sama dengan top:0, left:0, right:0, bottom:0) */
+
+  /* Pastikan di belakang teks */
+  z-index: -1;
+
+  /* 1. Blur yang seragam di seluruh area */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  /* 2. Lapisan cat putih (dari 70% di bawah ke 0% di atas) */
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.7),
+    /* Bawah: Putih 70% */ rgba(255, 255, 255, 0) /* Atas: Transparan */
+  );
+
+  /* 3. INI KUNCINYA: Mask/Topeng untuk memudarkan blur */
+  /* Mask ini membuat elemen ::before itu sendiri 
+     terlihat 70% di bawah dan memudar/hilang di atas */
+  mask-image: linear-gradient(
+    to top,
+    black 70%,
+    /* 70% bagian bawah terlihat penuh */ transparent 100%
+      /* Pudar menjadi transparan di atas */
+  );
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+}
+
+/* (Opsional) Efek hover keren: 
+   Overlay akan membesar saat di-hover 
+*/
+.berita-landingpage:hover .berita-info {
+  height: 75%; /* Perbesar overlay */
+}
+
+.berita-shell-title {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-3 {
+  display: flex;
+  flex-direction: column;
+  margin: 3rem 2rem;
+  gap: 2.5rem;
+}
+
+.section-3-1 {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lokasidesa {
+  gap: 0.75rem;
+}
+
+.icon-maps {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  display: block;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.icon-maps img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.6rem;
+}
+
+.lokasi-desa {
+  display: flex;
+  text-align: left;
+}
+
+.section-3-2 {
+  position: relative;
+}
+
+#desaMap {
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  border-radius: 2rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-toggle-group {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+
+  display: flex;
+  flex-direction: row;
+  gap: 0.6rem;
+
+  z-index: 999;
+}
+
+/* --- TOGGLE BUTTON --- */
+.toggle-map-btn {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 6px 6px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s ease;
+
+  z-index: 9999;
+}
+
+.toggle-map-btn {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+}
+
+.toggle-map-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18),
+    0 18px 30px rgba(255, 255, 255, 0.08);
+}
+
+/* ICON WARNA PUTIH SAAT SATELLITE ON */
+.toggle-map-btn.active .material-symbols-rounded {
+  color: white !important;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)); /* supaya tetap terlihat */
+}
+
+/* Reuse the global liquidGlass classes, but make sure
+   they clip to the circular border. */
+.toggle-map-btn > .liquidGlass-effect,
+.toggle-map-btn > .liquidGlass-tint,
+.toggle-map-btn > .liquidGlass-shine,
+.toggle-map-btn > .liquidGlass-text {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem; /* IMPORTANT: match parent's border-radius */
+  pointer-events: none; /* allow clicks through to the button */
+}
+
+/* Slightly stronger blur like in button-landingpage */
+.toggle-map-btn > .liquidGlass-effect {
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  /* keep subtle white glass */
+  background: rgba(255, 255, 255, 0.14);
+  z-index: 0;
+  filter: url(#glass-distortion);
+  isolation: isolate;
+}
+
+/* tint layer */
+.toggle-map-btn > .liquidGlass-tint {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  z-index: 1;
+}
+
+/* shine / inset highlights */
+.toggle-map-btn > .liquidGlass-shine {
+  box-shadow: inset 2px 2px 2px rgba(255, 255, 255, 0.6),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.25);
+  z-index: 2;
+  mix-blend-mode: screen;
+}
+
+/* text/icon wrapper placed above effects */
+.toggle-map-btn > .liquidGlass-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  color: #111;
+  font-weight: 600;
+}
+
+/* icon */
+.toggle-map-btn .material-symbols-rounded {
+  font-size: 22px;
+  line-height: 1;
+  pointer-events: none;
+  color: #111;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.15));
+}
+
+/* Active state (satelite ON) — slightly different tint */
+.toggle-map-btn.active > .liquidGlass-effect {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ensure children of .button-landingpage keep same rounding behavior */
+.button-landingpage > div,
+.toggle-map-btn > div {
+  border-radius: inherit;
+}
+
+/* Accessibility: focus ring */
+.toggle-map-btn:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.12);
+  outline-offset: 2px;
+}
+
+/* RESET MAP ikut jadi putih saat satelit aktif */
+.map-toggle-group.satellite-on #resetMap .material-symbols-rounded {
+  color: white !important;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
+}
+
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+.section-3-3 {
+  display: flex;
+  flex-direction: column;
+  color: #afafaf;
+  font-size: 0.8rem;
+  gap: 0.7rem;
+}
+
+/* HOVER UNTUK MAP */
+
+/* Marker Icon */
+.material-marker {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* Bulatan marker */
+.material-marker .marker-shell {
+  width: 28px;
+  height: 28px;
+
+  background: white;
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.material-marker span {
+  font-size: 18px;
+  color: black;
+  line-height: 1;
+}
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 1.25rem !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.popup-box {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+
+  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popup-title {
+  flex: 1;
+  font-family: "Stack Sans Headline", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-weight: bold;
+  font-size: 0.9rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.popup-direction {
+  flex-shrink: 0 !important;
+  background-color: #e5eaf1;
+  color: black !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.popup-direction span {
+  color: black !important;
+  font-size: 20px;
+}
+
+.popup-direction:hover {
+  background-color: #d2d8e0;
+  transform: scale(1.05);
+}
+
+.popup-img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+
+/* Wrapper utama marker */
+
+/* Icon Material */
+
+.leaflet-popup-close-button {
+  display: none !important;
+}
+
+.license-map {
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+}
+
+/* Garis putus-putus */
+.license-map::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px; /* jarak dari teks */
+  width: 100%;
+  height: 4px; /* tebal garis */
+
+  background-image: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 50%,
+    transparent 50%,
+    transparent 100%
+  );
+  background-size: 4px 2px; /* panjang setiap dash */
+  background-repeat: repeat-x;
+
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  border-radius: 1px;
+
+  transition: all 0.2s ease;
+}
+
+.license-map:hover::after {
+  opacity: 1;
+  background-size: 5px 2px;
+}
+
+@media (max-width: 768px) {
+  /* 1. Atur ulang layout .section-1 */
+  .section-1 {
+    /* Ubah dari 'flex-end' (rata kanan) 
+       menjadi 'center' (rata tengah) di HP */
+    align-items: flex-end;
+    justify-content: center;
+    height: 100dvh;
+
+    /* (Opsional) Beri sedikit padding atas/bawah jika perlu */
+    /* padding-top: 2rem; */
+  }
+
+  /* 2. Perbaiki .shell-section-1 */
+  .shell-section-1 {
+    /* Ubah lebar dari 50vw (setengah layar) menjadi 90vw */
+    width: 90vw;
+    margin-bottom: 2rem;
+
+    /* Hapus padding-right spesifik agar bisa di tengah */
+    padding-right: 0;
+  }
+
+  /* 3. (Opsional) Pusatkan tombol-tombol */
+  .section-1-2 {
+    /* Membuat tombol-tombolnya center secara horizontal */
+    justify-content: flex-start;
+  }
+
+  /* Anda juga bisa mengecilkan font jika perlu, contoh:
+    .section-1-1 span:nth-child(2) {
+       font-size: 2.5rem; 
+    }
+  */
+
+  /* Mengubah layout grid (Mobile: 2 kolom) */
+  .section-2-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Perbesar overlay di HP agar teks lebih mudah dibaca */
+  .berita-info {
+    height: 50%;
+    padding: 0.4rem;
+  }
+
+  /* Sesuaikan font di HP */
+  .berita-info span {
+    font-size: 0.8rem;
+  }
+  .berita-info p {
+    font-size: 0.7rem;
+  }
+
+  .berita-shell-title {
+    margin-top: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .isi-berita {
+    display: none;
+  }
+
+  .section-3-1 {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  .lokasidesa{
+    border-radius: 1.5rem;
+  }
+
+  .lokasidesa p{
+    display: none;
+  }
+
+  #desaMap {
+    aspect-ratio: 3 / 4;
+  }
+}
+
+@media (max-aspect-ratio: 16/10) and (min-width: 601px) {
+  .section-2-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

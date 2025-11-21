@@ -1,0 +1,4 @@
+Cara untuk menyalakan karangasem-admin
+
+1. docker-compose up -d --build
+2. docker-compose exec admin-app composer require aws/aws-sdk-php
