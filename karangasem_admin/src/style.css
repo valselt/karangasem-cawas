@@ -180,7 +180,6 @@ nav::-webkit-scrollbar-thumb {
     z-index: 1;
 }
 
-/* --- COMPONENTS --- */
 /* Pastikan Card tidak memaksa lebar berlebih */
 .card {
     background: var(--card-bg);
