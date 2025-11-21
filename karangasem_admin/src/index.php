@@ -1,6 +1,6 @@
 <?php
 include 'koneksi.php';
-require 'vendor/autoload.php'; 
+require 'vendor/autoload.php';
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
@@ -16,13 +16,57 @@ $minioConfig = [
         'secret' => 'aldorino04',
     ],
 ];
-$bucketName = 'karangasem'; 
+$bucketName = 'karangasem';
+$s3 = new S3Client($minioConfig); // Inisialisasi Global
+
+// --- HELPER: SLUGIFY ---
+function slugify($text) {
+    return strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '', $text)));
+}
+
+// --- HELPER: UPLOAD MINIO WEBP ---
+function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
+    if (isset($fileArray) && $fileArray['error'] === UPLOAD_ERR_OK) {
+        $tmpName = $fileArray['tmp_name'];
+        $imageInfo = getimagesize($tmpName);
+        $mime = $imageInfo['mime'];
+        $imgResource = null;
+
+        switch ($mime) {
+            case 'image/jpeg': $imgResource = imagecreatefromjpeg($tmpName); break;
+            case 'image/png':  $imgResource = imagecreatefrompng($tmpName); break;
+            case 'image/webp': $imgResource = imagecreatefromwebp($tmpName); break;
+        }
+
+        if ($imgResource) {
+            $tempWebp = tempnam(sys_get_temp_dir(), 'webp');
+            imagewebp($imgResource, $tempWebp, 80); // Convert to WebP quality 80
+            imagedestroy($imgResource);
+            
+            try {
+                $s3Client->putObject([
+                    'Bucket' => $bucket,
+                    'Key' => $targetKey,
+                    'SourceFile' => $tempWebp,
+                    'ACL' => 'public-read',
+                    'ContentType' => 'image/webp'
+                ]);
+                unlink($tempWebp);
+                // Return Full URL
+                return "https://cdn.ivanaldorino.web.id/" . $bucket . "/" . $targetKey;
+            } catch (AwsException $e) {
+                return null;
+            }
+        }
+    }
+    return null;
+}
 
 // --- VARIABEL EDIT ---
 $editMode = false;
 $editData = null;
 
-// 1. CEK MODE EDIT
+// 1. CEK MODE EDIT POTENSI
 if (isset($_GET['action']) && $_GET['action'] == 'edit_potensi' && isset($_GET['id'])) {
     $id = intval($_GET['id']);
     $queryEdit = $conn->query("SELECT * FROM potensi_desa WHERE id = $id");
@@ -44,36 +88,12 @@ if (isset($_POST['simpan_potensi'])) {
     $isUpdate = isset($_POST['id_potensi']) && !empty($_POST['id_potensi']);
     $fotoUrl = $isUpdate ? $_POST['foto_lama'] : null; 
 
-    // Handle Upload Foto
+    // Upload Foto Potensi
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $tmpName = $_FILES['foto']['tmp_name'];
         $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $nama)));
         $fileName = "websiteutama/potensi_desa/" . $slug . "-" . time() . ".webp";
-        
-        $imageInfo = getimagesize($tmpName);
-        $mime = $imageInfo['mime'];
-        $imgResource = null;
-
-        switch ($mime) {
-            case 'image/jpeg': $imgResource = imagecreatefromjpeg($tmpName); break;
-            case 'image/png':  $imgResource = imagecreatefrompng($tmpName); break;
-            case 'image/webp': $imgResource = imagecreatefromwebp($tmpName); break;
-        }
-
-        if ($imgResource) {
-            $tempWebp = tempnam(sys_get_temp_dir(), 'webp');
-            imagewebp($imgResource, $tempWebp, 80);
-            imagedestroy($imgResource);
-            try {
-                $s3 = new S3Client($minioConfig);
-                $s3->putObject([
-                    'Bucket' => $bucketName, 'Key' => $fileName, 'SourceFile' => $tempWebp,
-                    'ACL' => 'public-read', 'ContentType' => 'image/webp'
-                ]);
-                $fotoUrl = $minioConfig['endpoint'] . "/$bucketName/$fileName";
-                unlink($tempWebp);
-            } catch (AwsException $e) { die("Error Upload MinIO: " . $e->getMessage()); }
-        }
+        $uploaded = uploadImageToMinio($_FILES['foto'], $fileName, $s3, $bucketName);
+        if ($uploaded) $fotoUrl = $uploaded;
     }
 
     if ($isUpdate) {
@@ -93,8 +113,84 @@ if (isset($_POST['simpan_potensi'])) {
     if ($stmt->execute()) {
         header("Location: ?page=potensi&status=" . $redirectStatus);
         exit;
+    }
+}
+
+// 3. LOGIC TAMBAH UMKM BARU
+if (isset($_POST['simpan_umkm'])) {
+    // A. Data UMKM
+    $namaUsaha = $_POST['nama_usaha'];
+    $pemilik = $_POST['nama_pemilik'];
+    $kategori = $_POST['kategori'];
+    $kontak = $_POST['kontak'];
+    $alamat = $_POST['alamat'];
+    $deskripsiUsaha = $_POST['deskripsi_usaha'];
+    $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : 0;
+    $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : 0;
+    
+    // Checkbox logic (return 1 if checked, 0 if not)
+    $qris = isset($_POST['qris']) ? 1 : 0;
+    $punyaWa = isset($_POST['punya_wa']) ? 1 : 0;
+    $waSama = isset($_POST['wa_sama']) ? 1 : 0;
+    $waBeda = ($punyaWa && !$waSama) ? $_POST['wa_beda'] : null;
+    
+    $punyaIg = isset($_POST['punya_ig']) ? 1 : 0;
+    $userIg = $punyaIg ? $_POST['user_ig'] : null;
+    
+    $punyaFb = isset($_POST['punya_fb']) ? 1 : 0;
+    $linkFb = $punyaFb ? $_POST['link_fb'] : null;
+
+    // B. Data Produk Awal
+    $namaProduk = $_POST['nama_produk'];
+    $hargaProduk = str_replace('.', '', $_POST['harga_produk']); // Hapus titik jika ada format ribuan
+    $deskripsiProduk = $_POST['deskripsi_produk'];
+
+    // C. Proses Upload Foto UMKM
+    // Format: websiteutama/umkm/ + Nama Usaha + _ + tanggal + .webp
+    $pathFotoUsaha = null;
+    if (isset($_FILES['foto_usaha']) && $_FILES['foto_usaha']['error'] === UPLOAD_ERR_OK) {
+        $cleanNamaUsaha = slugify($namaUsaha);
+        $tgl = date('Ymd-His');
+        $keyUmkm = "websiteutama/umkm/" . $cleanNamaUsaha . "_" . $tgl . ".webp";
+        $pathFotoUsaha = uploadImageToMinio($_FILES['foto_usaha'], $keyUmkm, $s3, $bucketName);
+    }
+
+    // D. Insert Tabel UMKM
+    // id_user diset NULL atau 1 (admin default) karena input dari admin panel. diacc = 1 (langsung aktif)
+    $stmtUmkm = $conn->prepare("INSERT INTO umkm (nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    $stmtUmkm->bind_param("ssssssddsiiiisisis", 
+        $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
+        $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
+    );
+
+    if ($stmtUmkm->execute()) {
+        $newUmkmId = $conn->insert_id; // Ambil ID UMKM yang baru dibuat
+
+        // E. Proses Upload Foto Produk
+        // Format: websiteutama/umkm/fotoprodukumkm + Nama Produk + Nama Usaha + tanggal + .webp
+        $pathFotoProduk = null;
+        if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
+            $cleanNamaProduk = slugify($namaProduk);
+            $cleanNamaUsaha = slugify($namaUsaha); // Re-use
+            $tgl = date('Ymd-His');
+            $keyProduk = "websiteutama/umkm/fotoprodukumkm/" . $cleanNamaProduk . $cleanNamaUsaha . $tgl . ".webp";
+            $pathFotoProduk = uploadImageToMinio($_FILES['foto_produk'], $keyProduk, $s3, $bucketName);
+        }
+
+        // F. Insert Tabel Produk
+        $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
+        $stmtProduk->bind_param("isiszs", $newUmkmId, $namaProduk, $hargaProduk, $deskripsiProduk, $pathFotoProduk); // z is dummy, use s for text/varchar usually. Let's strict to 'isiss'
+        // Koreksi bind param: i (int), s (string), i (int), s (string), s (string)
+        $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
+        $stmtProduk->bind_param("isiss", $newUmkmId, $namaProduk, $hargaProduk, $deskripsiProduk, $pathFotoProduk);
+        
+        $stmtProduk->execute();
+
+        header("Location: ?page=umkm&status=success_add");
+        exit;
     } else {
-        echo "Error: " . $stmt->error;
+        echo "Error: " . $stmtUmkm->error;
     }
 }
 
@@ -251,7 +347,162 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
 
         <?php elseif ($page == 'umkm'): ?>
             <h1>Kelola UMKM</h1>
+
+            <?php if (isset($_GET['action']) && $_GET['action'] == 'tambah_umkm'): ?>
+            <div class="card" style="margin-bottom: 40px;">
+                <div class="card-header" style="margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Tambah UMKM Baru</h3>
+                        <a href="?page=umkm" class="btn btn-secondary"><span class="material-symbols-rounded">close</span> Batal</a>
+                    </div>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    <h4>A. Informasi Usaha</h4>
+                    <div class="form-row">
+                        <div class="flex-grow-2">
+                            <label>Nama Usaha</label>
+                            <input type="text" name="nama_usaha" class="form-control" required placeholder="Contoh: Keripik Singkong Barokah">
+                        </div>
+                        <div class="flex-grow-1">
+                            <label>Kategori</label>
+                            <select name="kategori" class="form-control" required>
+                                <option value="warung">Warung</option>
+                                <option value="pedagangkakilima">Pedagang Kaki Lima</option>
+                                <option value="pengrajin">Pengrajin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="flex-grow-1">
+                            <label>Nama Pemilik</label>
+                            <input type="text" name="nama_pemilik" class="form-control" required placeholder="Nama Lengkap">
+                        </div>
+                        <div class="flex-grow-1">
+                            <label>Kontak HP (Utama)</label>
+                            <input type="text" name="kontak" class="form-control" required placeholder="08xxxxx">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label>Deskripsi Usaha</label>
+                        <textarea name="deskripsi_usaha" class="form-control" rows="3" placeholder="Jelaskan tentang usaha ini..."></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label>Alamat Lengkap</label>
+                        <textarea name="alamat" class="form-control" rows="2" required placeholder="Jalan, RT/RW, Dusun..."></textarea>
+                    </div>
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label>Lokasi Usaha (Klik pada peta)</label>
+                        <div id="map-container" style="height: 300px; width: 100%;"></div>
+                        <input type="hidden" name="latitude" id="input-lat">
+                        <input type="hidden" name="longitude" id="input-lng">
+                    </div>
+
+                    <div class="form-row">
+                        <div style="flex:1;">
+                            <label>Foto Usaha (MinIO)</label>
+                            <input type="file" name="foto_usaha" class="form-control" accept="image/*" required>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; padding-top:25px;">
+                             <input type="checkbox" name="qris" id="chk-qris" style="width:20px; height:20px;">
+                             <label for="chk-qris" style="margin:0; cursor:pointer;">Mendukung QRIS?</label>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top:30px;">B. Sosial Media</h4>
+                    <div style="background: var(--input-bg); padding:20px; border-radius:12px; margin-bottom:20px;">
+                        <div style="margin-bottom:15px;">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <input type="checkbox" name="punya_wa" id="chk-wa" style="width:18px; height:18px;" onchange="toggleSosmed('wa')">
+                                <label for="chk-wa" style="margin:0;">Punya WhatsApp?</label>
+                            </div>
+                            <div id="box-wa" style="display:none; margin-left:28px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <input type="checkbox" name="wa_sama" id="chk-wa-sama" checked onchange="toggleWaSama()">
+                                    <label for="chk-wa-sama" style="margin:0; font-weight:normal;">Nomor sama dengan kontak utama?</label>
+                                </div>
+                                <input type="text" name="wa_beda" id="inp-wa-beda" class="form-control" placeholder="Masukkan nomor WA khusus (jika beda)" style="display:none;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:15px;">
+                             <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <input type="checkbox" name="punya_ig" id="chk-ig" style="width:18px; height:18px;" onchange="toggleSosmed('ig')">
+                                <label for="chk-ig" style="margin:0;">Punya Instagram?</label>
+                            </div>
+                            <div id="box-ig" style="display:none; margin-left:28px;">
+                                <input type="text" name="user_ig" class="form-control" placeholder="Username IG (tanpa @)">
+                            </div>
+                        </div>
+
+                        <div>
+                             <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <input type="checkbox" name="punya_fb" id="chk-fb" style="width:18px; height:18px;" onchange="toggleSosmed('fb')">
+                                <label for="chk-fb" style="margin:0;">Punya Facebook?</label>
+                            </div>
+                            <div id="box-fb" style="display:none; margin-left:28px;">
+                                <input type="text" name="link_fb" class="form-control" placeholder="Link Profil Facebook Lengkap">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top:30px;">C. Produk Unggulan (Satu Produk Awal)</h4>
+                    <div style="border: 1px dashed var(--accent-color); padding:20px; border-radius:12px;">
+                        <div class="form-row">
+                            <div class="flex-grow-2">
+                                <label>Nama Produk</label>
+                                <input type="text" name="nama_produk" class="form-control" required placeholder="Contoh: Keripik Rasa Balado">
+                            </div>
+                            <div class="flex-grow-1">
+                                <label>Harga (Rp)</label>
+                                <input type="number" name="harga_produk" class="form-control" required placeholder="15000">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label>Deskripsi Produk</label>
+                            <textarea name="deskripsi_produk" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <label>Foto Produk (MinIO)</label>
+                            <input type="file" name="foto_produk" class="form-control" accept="image/*" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="simpan_umkm" class="btn btn-primary" style="width: 100%; padding: 18px; margin-top:30px;">
+                        <span class="material-symbols-rounded">save</span> Simpan Data UMKM & Produk
+                    </button>
+                </form>
+
+                <script>
+                    function toggleSosmed(type) {
+                        const chk = document.getElementById('chk-' + type);
+                        const box = document.getElementById('box-' + type);
+                        box.style.display = chk.checked ? 'block' : 'none';
+                    }
+                    function toggleWaSama() {
+                        const chk = document.getElementById('chk-wa-sama');
+                        const inp = document.getElementById('inp-wa-beda');
+                        inp.style.display = chk.checked ? 'none' : 'block';
+                        if(!chk.checked) inp.focus();
+                    }
+                    // Init Map UMKM (Reuse logic from script.js if possible, or simple init here)
+                    // We rely on script.js detecting #map-container
+                </script>
+            </div>
+            <?php endif; ?>
             
+            <?php if (!isset($_GET['action']) || $_GET['action'] != 'tambah_umkm'): ?>
+            <div style="margin-bottom: 20px; text-align: right;">
+                <a href="?page=umkm&action=tambah_umkm" class="btn btn-primary">
+                    <span class="material-symbols-rounded">add_business</span> Tambah UMKM Baru
+                </a>
+            </div>
+            <?php endif; ?>
+
             <div class="card card-warning">
                 <div class="card-header"><h3><span class="material-symbols-rounded">pending</span> Menunggu Persetujuan</h3></div>
                 <div class="table-container">
@@ -302,10 +553,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                             <?php
                             // LOGIC PENGELOMPOKAN DATA
                             $sqlFull = "SELECT u.*, 
-                                               p.id as id_produk, p.nama_produk, p.harga_produk, p.deskripsi_produk, p.path_foto_produk 
-                                        FROM umkm u 
-                                        LEFT JOIN umkmproduk p ON u.id = p.umkm_id 
-                                        ORDER BY u.nama_usaha ASC";
+                                           p.id as id_produk, p.nama_produk, p.harga_produk, p.deskripsi_produk, p.path_foto_produk 
+                                    FROM umkm u 
+                                    LEFT JOIN umkmproduk p ON u.id = p.umkm_id 
+                                    ORDER BY u.nama_usaha ASC";
                             $resFull = $conn->query($sqlFull);
                             
                             $umkmData = [];
@@ -387,7 +638,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                             </tr>
                             <?php endfor; endif; ?>
 
-                            <tr><td colspan="10" style="padding:0; border-bottom: 2px solid var(--card-border);"></td></tr>
+                            <tr><td colspan="11" style="padding:0; border-bottom: 2px solid var(--card-border);"></td></tr>
 
                             <?php endforeach; ?>
                         </tbody>
