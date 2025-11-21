@@ -289,6 +289,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                 <th style="min-width:120px;">Pemilik</th>
                                 <th style="min-width:100px;">Kontak</th>
                                 <th style="min-width:200px;">Alamat</th>
+                                <th>Foto Usaha</th>
                                 <th>QRIS</th>
                                 <th>Sosmed</th>
                                 <th style="min-width:150px; border-left: 2px solid var(--card-border);">Produk</th>
@@ -328,6 +329,16 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['nama_pemilik_usaha']) ?></td>
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['kontak_usaha']) ?></td>
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['alamat_usaha']) ?></td>
+
+                                <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
+                                    <?php if (!empty($info['path_foto_usaha'])): ?>
+                                        <a href="<?= htmlspecialchars($info['path_foto_usaha']) ?>" target="_blank">
+                                            <img src="<?= htmlspecialchars($info['path_foto_usaha']) ?>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= $info['qris'] ? '<span class="badge">Yes</span>' : 'No' ?></td>
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
                                     <?php 
