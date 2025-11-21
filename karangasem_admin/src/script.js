@@ -1,16 +1,15 @@
-// FUNGSI GLOBAL POPUP (Agar bisa dipanggil tombol di dalam HTML string)
-// Kita simpan callback action secara global sementara
+// FUNGSI GLOBAL POPUP
 let currentPopupAction = null;
 
 function closePopup() {
   const overlay = document.getElementById("custom-popup");
   if (overlay) overlay.classList.remove("show");
-  currentPopupAction = null; // Reset action
+  currentPopupAction = null; 
 }
 
 function confirmAction() {
   if (currentPopupAction) {
-    currentPopupAction(); // Jalankan fungsi simpanan (misal: redirect hapus)
+    currentPopupAction(); 
   }
   closePopup();
 }
@@ -24,10 +23,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const logoImg = document.getElementById("sidebar-logo");
   const body = document.body;
 
-  const logoLight =
-    "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-color.png";
-  const logoDark =
-    "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-white.png";
+  const logoLight = "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-color.png";
+  const logoDark = "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-white.png";
 
   function setTheme(themeName) {
     body.setAttribute("data-theme", themeName);
@@ -53,9 +50,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ============================================================
-  // 2. LOGIC POPUP NOTIFICATION (MODERN + CONFIRM)
+  // 2. LOGIC POPUP NOTIFICATION
   // ============================================================
-
   function showPopup(type, title, message, actionCallback = null) {
     const overlay = document.getElementById("custom-popup");
     const box = overlay.querySelector(".popup-box");
@@ -64,153 +60,126 @@ document.addEventListener("DOMContentLoaded", function () {
     const msgEl = document.getElementById("popup-message");
     const btnContainer = document.getElementById("popup-buttons");
 
-    // 1. Reset Kelas Warna & Konten
-    box.classList.remove(
-      "popup-type-success",
-      "popup-type-error",
-      "popup-type-warning"
-    );
-    btnContainer.innerHTML = ""; // Kosongkan tombol lama
-    currentPopupAction = actionCallback; // Simpan aksi
+    box.classList.remove("popup-type-success", "popup-type-error", "popup-type-warning");
+    btnContainer.innerHTML = ""; 
+    currentPopupAction = actionCallback; 
 
-    // 2. Tentukan Icon & Warna
     let iconHTML = "";
     if (type === "success") {
       box.classList.add("popup-type-success");
       iconHTML = '<span class="material-symbols-rounded">done_outline</span>';
     } else if (type === "error") {
       box.classList.add("popup-type-error");
-      iconHTML = '<span class="material-symbols-rounded">warning</span>'; // Ikon Gagal (Merah)
+      iconHTML = '<span class="material-symbols-rounded">warning</span>'; 
     } else {
-      // Warning / Default (Kuning)
       box.classList.add("popup-type-warning");
-      iconHTML = '<span class="material-symbols-rounded">priority_high</span>'; // Ikon Tanda Seru
+      iconHTML = '<span class="material-symbols-rounded">priority_high</span>'; 
     }
 
-    // 3. Isi Teks
     iconContainer.innerHTML = iconHTML;
     titleEl.textContent = title;
     msgEl.textContent = message;
 
-    // 4. Render Tombol
     if (actionCallback) {
-      // --- MODE KONFIRMASI (Ada Action) ---
-      // Tombol Batal
       const btnCancel = document.createElement("button");
-      btnCancel.className = "btn btn-secondary"; // Class CSS abu-abu
+      btnCancel.className = "btn btn-secondary"; 
       btnCancel.textContent = "Batal";
       btnCancel.onclick = closePopup;
 
-      // Tombol Ya
       const btnConfirm = document.createElement("button");
-      btnConfirm.className = "btn btn-danger"; // Class CSS merah
+      btnConfirm.className = "btn btn-danger"; 
       btnConfirm.textContent = "Ya, Hapus";
       btnConfirm.onclick = confirmAction;
 
       btnContainer.appendChild(btnCancel);
       btnContainer.appendChild(btnConfirm);
     } else {
-      // --- MODE NOTIFIKASI BIASA (Hanya Tutup) ---
       const btnClose = document.createElement("button");
-      btnClose.className = "btn-popup-close"; // Class CSS tombol bulat outline
+      btnClose.className = "btn-popup-close"; 
       btnClose.textContent = "Tutup";
       btnClose.onclick = closePopup;
       btnContainer.appendChild(btnClose);
     }
 
-    // 5. Tampilkan
     overlay.classList.add("show");
   }
 
-  // Handler Notifikasi dari PHP (URL Parameter)
   const statusEl = document.getElementById("status-message");
   if (statusEl) {
     const status = statusEl.getAttribute("data-status");
-
-    if (status === "success_acc")
-      showPopup("success", "Berhasil!", "UMKM telah disetujui dan aktif.");
-    else if (status === "success_add")
-      showPopup(
-        "success",
-        "Berhasil!",
-        "Data Potensi Desa berhasil ditambahkan."
-      );
-    else if (status === "success_edit")
-      showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
-    else if (status === "error")
-      showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
+    if (status === "success_acc") showPopup("success", "Berhasil!", "UMKM telah disetujui dan aktif.");
+    else if (status === "success_add") showPopup("success", "Berhasil!", "Data berhasil ditambahkan.");
+    else if (status === "success_edit") showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
+    else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
 
     const url = new URL(window.location);
     url.searchParams.delete("status");
     window.history.replaceState({}, "", url);
   }
 
-  // Handler Tombol Hapus (Override Confirm Bawaan)
   document.querySelectorAll(".btn-delete").forEach((btn) => {
     btn.addEventListener("click", function (e) {
-      e.preventDefault(); // Matikan link asli
-      const url = this.getAttribute("href"); // Ambil link hapus
-      const confirmMsg =
-        this.getAttribute("data-confirm") ||
-        "Apakah Anda yakin ingin menghapus data ini?";
-
-      // Panggil Popup dengan Callback Redirect
+      e.preventDefault(); 
+      const url = this.getAttribute("href"); 
+      const confirmMsg = this.getAttribute("data-confirm") || "Apakah Anda yakin ingin menghapus data ini?";
       showPopup("warning", "Konfirmasi Hapus", confirmMsg, () => {
-        window.location.href = url; // Redirect manual
+        window.location.href = url; 
       });
     });
   });
 
-  // Handler Tombol Terima UMKM (Sama seperti hapus, perlu konfirmasi)
   document.querySelectorAll(".btn-acc").forEach((btn) => {
     btn.addEventListener("click", function (e) {
       e.preventDefault();
       const url = this.getAttribute("href");
-
-      showPopup(
-        "success",
-        "Terima UMKM?",
-        "UMKM ini akan ditampilkan di website utama.",
-        () => {
+      showPopup("success", "Terima UMKM?", "UMKM ini akan ditampilkan di website utama.", () => {
           window.location.href = url;
-        }
-      );
+      });
     });
   });
 
   // ============================================================
-  // 3. LOGIC FORM & PETA (LEAFLET JS) - TETAP SAMA
+  // 3. LOGIC FORM & PETA (LEAFLET JS) - SUDAH DIPERBAIKI
   // ============================================================
   const jenisSelect = document.getElementById("select-jenis");
   const containerTempat = document.getElementById("container-tempat");
   const containerBudaya = document.getElementById("container-budaya");
+  const mapContainer = document.getElementById("map-container"); // Cek elemen map
   let map = null;
   let marker = null;
 
-  if (jenisSelect && jenisSelect.value === "tempat") {
-    if (containerTempat) containerTempat.classList.remove("d-none");
-    initMap();
-  } else if (jenisSelect && jenisSelect.value === "budaya") {
-    if (containerBudaya) containerBudaya.classList.remove("d-none");
-  }
-
+  // LOGIC 1: Jika di Halaman Potensi Desa (Ada Dropdown Jenis)
   if (jenisSelect) {
-    jenisSelect.addEventListener("change", function () {
-      const val = this.value;
-      if (containerTempat) containerTempat.classList.add("d-none");
-      if (containerBudaya) containerBudaya.classList.add("d-none");
-
-      if (val === "tempat") {
+      if (jenisSelect.value === "tempat") {
         if (containerTempat) containerTempat.classList.remove("d-none");
         initMap();
-      } else if (val === "budaya") {
+      } else if (jenisSelect.value === "budaya") {
         if (containerBudaya) containerBudaya.classList.remove("d-none");
       }
-    });
+
+      jenisSelect.addEventListener("change", function () {
+        const val = this.value;
+        if (containerTempat) containerTempat.classList.add("d-none");
+        if (containerBudaya) containerBudaya.classList.add("d-none");
+
+        if (val === "tempat") {
+          if (containerTempat) containerTempat.classList.remove("d-none");
+          initMap();
+        } else if (val === "budaya") {
+          if (containerBudaya) containerBudaya.classList.remove("d-none");
+        }
+      });
+  } 
+  // LOGIC 2: Jika di Halaman UMKM (Tidak ada Dropdown Jenis, tapi ada Map Container)
+  else if (mapContainer) {
+      // Langsung inisialisasi map karena di form UMKM map selalu terlihat
+      initMap();
   }
 
   function initMap() {
     if (!document.getElementById("map-container")) return;
+    
+    // Jika map sudah ada, resize saja agar tidak error tampilan
     if (map) {
       setTimeout(() => {
         map.invalidateSize();
@@ -266,41 +235,56 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ============================================================
-  // 4. DRAG & DROP & REORDER - TETAP SAMA
+  // 4. DRAG & DROP & REORDER (TETAP SAMA DENGAN TAMBAHAN MULTI ID)
   // ============================================================
-  const uploadArea = document.getElementById("upload-area");
-  const inputFoto = document.getElementById("input-foto");
-  const uploadText = document.getElementById("upload-text");
+  
+  // Fungsi Helper agar bisa dipakai di Potensi (1 upload) dan UMKM (2 upload)
+  function setupUploadArea(areaId, inputId, textId) {
+        const area = document.getElementById(areaId);
+        const input = document.getElementById(inputId);
+        const text = document.getElementById(textId);
 
-  if (uploadArea && inputFoto) {
-    ["dragenter", "dragover"].forEach((eventName) => {
-      uploadArea.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        uploadArea.classList.add("dragover");
-      });
-    });
-    ["dragleave", "drop"].forEach((eventName) => {
-      uploadArea.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove("dragover");
-      });
-    });
-    uploadArea.addEventListener("drop", (e) => {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        inputFoto.files = files;
-        updateFileName(files[0].name);
-      }
-    });
-    inputFoto.addEventListener("change", function () {
-      if (this.files.length > 0) updateFileName(this.files[0].name);
-    });
-    function updateFileName(name) {
-      if (uploadText)
-        uploadText.innerHTML = `File Terpilih: <strong>${name}</strong>`;
-    }
+        if(!area || !input) return;
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            area.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                area.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            area.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                area.classList.remove('dragover');
+            });
+        });
+
+        area.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                input.files = files;
+                // Update teks
+                if(text) text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
+            }
+        });
+
+        input.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                if(text) text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`;
+            }
+        });
   }
 
+  // Panggil fungsi setup untuk Potensi Desa
+  setupUploadArea('upload-area', 'input-foto', 'upload-text');
+
+  // Panggil fungsi setup untuk UMKM (Foto Usaha & Produk)
+  setupUploadArea('upload-area-usaha', 'input-foto-usaha', 'upload-text-usaha');
+  setupUploadArea('upload-area-produk', 'input-foto-produk', 'upload-text-produk');
+
+
+  // Logic Sortable Table (Reorder)
   const sortableList = document.getElementById("sortable-list");
   let draggedItem = null;
   if (sortableList) {

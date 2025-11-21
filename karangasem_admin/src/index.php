@@ -1,6 +1,6 @@
 <?php
 include 'koneksi.php';
-require 'vendor/autoload.php';
+require 'vendor/autoload.php'; 
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
@@ -16,7 +16,7 @@ $minioConfig = [
         'secret' => 'aldorino04',
     ],
 ];
-$bucketName = 'karangasem';
+$bucketName = 'karangasem'; 
 $s3 = new S3Client($minioConfig); // Inisialisasi Global
 
 // --- HELPER: SLUGIFY ---
@@ -128,7 +128,7 @@ if (isset($_POST['simpan_umkm'])) {
     $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : 0;
     $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : 0;
     
-    // Checkbox logic (return 1 if checked, 0 if not)
+    // Checkbox logic
     $qris = isset($_POST['qris']) ? 1 : 0;
     $punyaWa = isset($_POST['punya_wa']) ? 1 : 0;
     $waSama = isset($_POST['wa_sama']) ? 1 : 0;
@@ -142,11 +142,10 @@ if (isset($_POST['simpan_umkm'])) {
 
     // B. Data Produk Awal
     $namaProduk = $_POST['nama_produk'];
-    $hargaProduk = str_replace('.', '', $_POST['harga_produk']); // Hapus titik jika ada format ribuan
+    $hargaProduk = str_replace('.', '', $_POST['harga_produk']); 
     $deskripsiProduk = $_POST['deskripsi_produk'];
 
     // C. Proses Upload Foto UMKM
-    // Format: websiteutama/umkm/ + Nama Usaha + _ + tanggal + .webp
     $pathFotoUsaha = null;
     if (isset($_FILES['foto_usaha']) && $_FILES['foto_usaha']['error'] === UPLOAD_ERR_OK) {
         $cleanNamaUsaha = slugify($namaUsaha);
@@ -156,7 +155,6 @@ if (isset($_POST['simpan_umkm'])) {
     }
 
     // D. Insert Tabel UMKM
-    // id_user diset NULL atau 1 (admin default) karena input dari admin panel. diacc = 1 (langsung aktif)
     $stmtUmkm = $conn->prepare("INSERT INTO umkm (nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     $stmtUmkm->bind_param("ssssssddsiiiisisis", 
@@ -165,23 +163,19 @@ if (isset($_POST['simpan_umkm'])) {
     );
 
     if ($stmtUmkm->execute()) {
-        $newUmkmId = $conn->insert_id; // Ambil ID UMKM yang baru dibuat
+        $newUmkmId = $conn->insert_id;
 
         // E. Proses Upload Foto Produk
-        // Format: websiteutama/umkm/fotoprodukumkm + Nama Produk + Nama Usaha + tanggal + .webp
         $pathFotoProduk = null;
         if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
             $cleanNamaProduk = slugify($namaProduk);
-            $cleanNamaUsaha = slugify($namaUsaha); // Re-use
+            $cleanNamaUsaha = slugify($namaUsaha);
             $tgl = date('Ymd-His');
             $keyProduk = "websiteutama/umkm/fotoprodukumkm/" . $cleanNamaProduk . $cleanNamaUsaha . $tgl . ".webp";
             $pathFotoProduk = uploadImageToMinio($_FILES['foto_produk'], $keyProduk, $s3, $bucketName);
         }
 
         // F. Insert Tabel Produk
-        $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
-        $stmtProduk->bind_param("isiszs", $newUmkmId, $namaProduk, $hargaProduk, $deskripsiProduk, $pathFotoProduk); // z is dummy, use s for text/varchar usually. Let's strict to 'isiss'
-        // Koreksi bind param: i (int), s (string), i (int), s (string), s (string)
         $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
         $stmtProduk->bind_param("isiss", $newUmkmId, $namaProduk, $hargaProduk, $deskripsiProduk, $pathFotoProduk);
         
@@ -405,7 +399,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                     <div class="form-row">
                         <div style="flex:1;">
                             <label>Foto Usaha (MinIO)</label>
-                            <input type="file" name="foto_usaha" class="form-control" accept="image/*" required>
+                            <div class="upload-area" id="upload-area-usaha">
+                                <input type="file" name="foto_usaha" id="input-foto-usaha" accept="image/*" required>
+                                <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
+                                <div class="upload-text" id="upload-text-usaha"><strong>Klik untuk upload</strong> atau drag & drop foto usaha di sini</div>
+                            </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:10px; padding-top:25px;">
                              <input type="checkbox" name="qris" id="chk-qris" style="width:20px; height:20px;">
@@ -466,11 +464,16 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                             <label>Deskripsi Produk</label>
                             <textarea name="deskripsi_produk" class="form-control" rows="2"></textarea>
                         </div>
+                        
                         <div>
                             <label>Foto Produk (MinIO)</label>
-                            <input type="file" name="foto_produk" class="form-control" accept="image/*" required>
+                            <div class="upload-area" id="upload-area-produk">
+                                <input type="file" name="foto_produk" id="input-foto-produk" accept="image/*" required>
+                                <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
+                                <div class="upload-text" id="upload-text-produk"><strong>Klik untuk upload</strong> atau drag & drop foto produk di sini</div>
+                            </div>
                         </div>
-                    </div>
+                        </div>
 
                     <button type="submit" name="simpan_umkm" class="btn btn-primary" style="width: 100%; padding: 18px; margin-top:30px;">
                         <span class="material-symbols-rounded">save</span> Simpan Data UMKM & Produk
@@ -489,8 +492,49 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         inp.style.display = chk.checked ? 'none' : 'block';
                         if(!chk.checked) inp.focus();
                     }
-                    // Init Map UMKM (Reuse logic from script.js if possible, or simple init here)
-                    // We rely on script.js detecting #map-container
+
+                    // Fungsi Drag & Drop untuk Multiple Upload Areas
+                    function setupUploadArea(areaId, inputId, textId) {
+                        const area = document.getElementById(areaId);
+                        const input = document.getElementById(inputId);
+                        const text = document.getElementById(textId);
+
+                        if(!area || !input) return;
+
+                        ['dragenter', 'dragover'].forEach(eventName => {
+                            area.addEventListener(eventName, (e) => {
+                                e.preventDefault();
+                                area.classList.add('dragover');
+                            });
+                        });
+
+                        ['dragleave', 'drop'].forEach(eventName => {
+                            area.addEventListener(eventName, (e) => {
+                                e.preventDefault();
+                                area.classList.remove('dragover');
+                            });
+                        });
+
+                        area.addEventListener('drop', (e) => {
+                            const files = e.dataTransfer.files;
+                            if (files.length > 0) {
+                                input.files = files;
+                                text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
+                            }
+                        });
+
+                        input.addEventListener('change', function() {
+                            if (this.files.length > 0) {
+                                text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`;
+                            }
+                        });
+                    }
+
+                    // Inisialisasi untuk Foto Usaha dan Foto Produk
+                    document.addEventListener("DOMContentLoaded", function() {
+                        setupUploadArea('upload-area-usaha', 'input-foto-usaha', 'upload-text-usaha');
+                        setupUploadArea('upload-area-produk', 'input-foto-produk', 'upload-text-produk');
+                    });
                 </script>
             </div>
             <?php endif; ?>
@@ -551,7 +595,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         </thead>
                         <tbody>
                             <?php
-                            // LOGIC PENGELOMPOKAN DATA
                             $sqlFull = "SELECT u.*, 
                                            p.id as id_produk, p.nama_produk, p.harga_produk, p.deskripsi_produk, p.path_foto_produk 
                                     FROM umkm u 
