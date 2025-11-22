@@ -1,4 +1,11 @@
 <?php
+
+// --- TAMBAHAN PENTING UNTUK MENGATASI 504 TIMEOUT ---
+set_time_limit(600);
+ini_set('memory_limit', '512M');
+ini_set('max_execution_time', 300);
+// ----------------------------------------------------
+
 include 'koneksi.php';
 require 'vendor/autoload.php'; 
 
@@ -17,7 +24,7 @@ $minioConfig = [
     ],
 ];
 $bucketName = 'karangasem'; 
-$s3 = new S3Client($minioConfig); // Inisialisasi Global
+$s3 = new S3Client($minioConfig); 
 
 // --- HELPER: SLUGIFY ---
 function slugify($text) {
@@ -26,6 +33,7 @@ function slugify($text) {
 
 // --- HELPER: UPLOAD MINIO WEBP ---
 function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
+    // Cek apakah error = 0 (UPLOAD_ERR_OK)
     if (isset($fileArray) && $fileArray['error'] === UPLOAD_ERR_OK) {
         $tmpName = $fileArray['tmp_name'];
         $imageInfo = getimagesize($tmpName);
@@ -40,7 +48,7 @@ function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
 
         if ($imgResource) {
             $tempWebp = tempnam(sys_get_temp_dir(), 'webp');
-            imagewebp($imgResource, $tempWebp, 80); // Convert to WebP quality 80
+            imagewebp($imgResource, $tempWebp, 80); 
             imagedestroy($imgResource);
             
             try {
@@ -52,7 +60,6 @@ function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
                     'ContentType' => 'image/webp'
                 ]);
                 unlink($tempWebp);
-                // Return Full URL
                 return "https://cdn.ivanaldorino.web.id/" . $bucket . "/" . $targetKey;
             } catch (AwsException $e) {
                 return null;
@@ -88,7 +95,6 @@ if (isset($_POST['simpan_potensi'])) {
     $isUpdate = isset($_POST['id_potensi']) && !empty($_POST['id_potensi']);
     $fotoUrl = $isUpdate ? $_POST['foto_lama'] : null; 
 
-    // Upload Foto Potensi
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $nama)));
         $fileName = "websiteutama/potensi_desa/" . $slug . "-" . time() . ".webp";
@@ -116,7 +122,7 @@ if (isset($_POST['simpan_potensi'])) {
     }
 }
 
-// 3. LOGIC TAMBAH UMKM BARU
+// 3. LOGIC TAMBAH UMKM BARU (DENGAN MULTIPLE PRODUK)
 if (isset($_POST['simpan_umkm'])) {
     // A. Data UMKM
     $namaUsaha = $_POST['nama_usaha'];
@@ -128,7 +134,6 @@ if (isset($_POST['simpan_umkm'])) {
     $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : 0;
     $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : 0;
     
-    // Checkbox logic
     $qris = isset($_POST['qris']) ? 1 : 0;
     $punyaWa = isset($_POST['punya_wa']) ? 1 : 0;
     $waSama = isset($_POST['wa_sama']) ? 1 : 0;
@@ -140,12 +145,7 @@ if (isset($_POST['simpan_umkm'])) {
     $punyaFb = isset($_POST['punya_fb']) ? 1 : 0;
     $linkFb = $punyaFb ? $_POST['link_fb'] : null;
 
-    // B. Data Produk Awal
-    $namaProduk = $_POST['nama_produk'];
-    $hargaProduk = str_replace('.', '', $_POST['harga_produk']); 
-    $deskripsiProduk = $_POST['deskripsi_produk'];
-
-    // C. Proses Upload Foto UMKM
+    // B. Proses Upload Foto Usaha
     $pathFotoUsaha = null;
     if (isset($_FILES['foto_usaha']) && $_FILES['foto_usaha']['error'] === UPLOAD_ERR_OK) {
         $cleanNamaUsaha = slugify($namaUsaha);
@@ -154,32 +154,70 @@ if (isset($_POST['simpan_umkm'])) {
         $pathFotoUsaha = uploadImageToMinio($_FILES['foto_usaha'], $keyUmkm, $s3, $bucketName);
     }
 
-    // D. Insert Tabel UMKM
+    // C. Insert Tabel UMKM
     $stmtUmkm = $conn->prepare("INSERT INTO umkm (nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)");
     
-    $stmtUmkm->bind_param("ssssssddsiiiisisis", 
-        $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
-        $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
+    // PERBAIKAN: String tipe data disesuaikan dengan urutan variabel
+    // s=string, d=double, i=integer
+    $stmtUmkm->bind_param("ssssssddsiiisisis", 
+        $namaUsaha, 
+        $deskripsiUsaha, 
+        $kategori, 
+        $pemilik, 
+        $kontak, 
+        $alamat, 
+        $lat, 
+        $lng, 
+        $pathFotoUsaha, 
+        $qris, 
+        $punyaWa, 
+        $waSama, 
+        $waBeda, 
+        $punyaIg, 
+        $userIg, 
+        $punyaFb, 
+        $linkFb
     );
 
     if ($stmtUmkm->execute()) {
         $newUmkmId = $conn->insert_id;
 
-        // E. Proses Upload Foto Produk
-        $pathFotoProduk = null;
-        if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
-            $cleanNamaProduk = slugify($namaProduk);
-            $cleanNamaUsaha = slugify($namaUsaha);
-            $tgl = date('Ymd-His');
-            $keyProduk = "websiteutama/umkm/fotoprodukumkm/" . $cleanNamaProduk . $cleanNamaUsaha . $tgl . ".webp";
-            $pathFotoProduk = uploadImageToMinio($_FILES['foto_produk'], $keyProduk, $s3, $bucketName);
-        }
+        // D. LOOP INSERT PRODUK (Multiple)
+        // Kita meloop berdasarkan array nama_produk
+        if (isset($_POST['nama_produk']) && is_array($_POST['nama_produk'])) {
+            $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
+            
+            foreach ($_POST['nama_produk'] as $key => $nmProduk) {
+                $hrgProduk = str_replace('.', '', $_POST['harga_produk'][$key]);
+                $descProduk = $_POST['deskripsi_produk'][$key];
+                
+                // Handle Upload Foto Produk per Index
+                $pathFotoProduk = null;
+                
+                // Cek apakah ada file upload untuk index ini
+                if (isset($_FILES['foto_produk']['name'][$key]) && $_FILES['foto_produk']['error'][$key] === UPLOAD_ERR_OK) {
+                    // Kita perlu menyusun ulang array file agar sesuai format fungsi uploadImageToMinio
+                    $singleFile = [
+                        'name' => $_FILES['foto_produk']['name'][$key],
+                        'type' => $_FILES['foto_produk']['type'][$key],
+                        'tmp_name' => $_FILES['foto_produk']['tmp_name'][$key],
+                        'error' => $_FILES['foto_produk']['error'][$key],
+                        'size' => $_FILES['foto_produk']['size'][$key]
+                    ];
 
-        // F. Insert Tabel Produk
-        $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
-        $stmtProduk->bind_param("isiss", $newUmkmId, $namaProduk, $hargaProduk, $deskripsiProduk, $pathFotoProduk);
-        
-        $stmtProduk->execute();
+                    $cleanNamaProduk = slugify($nmProduk);
+                    $cleanNamaUsaha = slugify($namaUsaha);
+                    $tgl = date('Ymd-His');
+                    // Tambah random number biar gak bentrok kalau upload banyak sekaligus
+                    $keyProduk = "websiteutama/umkm/fotoprodukumkm/" . $cleanNamaProduk . $cleanNamaUsaha . $tgl . rand(10,99) . ".webp";
+                    
+                    $pathFotoProduk = uploadImageToMinio($singleFile, $keyProduk, $s3, $bucketName);
+                }
+
+                $stmtProduk->bind_param("isiss", $newUmkmId, $nmProduk, $hrgProduk, $descProduk, $pathFotoProduk);
+                $stmtProduk->execute();
+            }
+        }
 
         header("Location: ?page=umkm&status=success_add");
         exit;
@@ -448,34 +486,42 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         </div>
                     </div>
 
-                    <h4 style="margin-top:30px;">C. Produk Unggulan (Satu Produk Awal)</h4>
-                    <div style="border: 1px dashed var(--accent-color); padding:20px; border-radius:12px;">
-                        <div class="form-row">
-                            <div class="flex-grow-2">
-                                <label>Nama Produk</label>
-                                <input type="text" name="nama_produk" class="form-control" required placeholder="Contoh: Keripik Rasa Balado">
+                    <h4 style="margin-top:30px;">C. Daftar Produk</h4>
+                    <div id="products-wrapper">
+                        <div class="product-item" style="border: 1px dashed var(--accent-color); padding:20px; border-radius:12px; margin-bottom:20px;">
+                            <h5 style="margin-top:0; color:var(--accent-color);">Produk #1</h5>
+                            <div class="form-row">
+                                <div class="flex-grow-2">
+                                    <label>Nama Produk</label>
+                                    <input type="text" name="nama_produk[]" class="form-control" required placeholder="Contoh: Keripik Rasa Balado">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label>Harga (Rp)</label>
+                                    <input type="number" name="harga_produk[]" class="form-control" required placeholder="15000">
+                                </div>
                             </div>
-                            <div class="flex-grow-1">
-                                <label>Harga (Rp)</label>
-                                <input type="number" name="harga_produk" class="form-control" required placeholder="15000">
+                            <div style="margin-bottom: 20px;">
+                                <label>Deskripsi Produk</label>
+                                <textarea name="deskripsi_produk[]" class="form-control" rows="2"></textarea>
+                            </div>
+                            <div>
+                                <label>Foto Produk (MinIO)</label>
+                                <div class="upload-area" id="upload-area-produk-0">
+                                    <input type="file" name="foto_produk[]" id="input-foto-produk-0" accept="image/*" required>
+                                    <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
+                                    <div class="upload-text" id="upload-text-produk-0"><strong>Klik untuk upload</strong> atau drag & drop foto produk di sini</div>
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-bottom: 20px;">
-                            <label>Deskripsi Produk</label>
-                            <textarea name="deskripsi_produk" class="form-control" rows="2"></textarea>
-                        </div>
-                        
-                        <div>
-                            <label>Foto Produk (MinIO)</label>
-                            <div class="upload-area" id="upload-area-produk">
-                                <input type="file" name="foto_produk" id="input-foto-produk" accept="image/*" required>
-                                <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
-                                <div class="upload-text" id="upload-text-produk"><strong>Klik untuk upload</strong> atau drag & drop foto produk di sini</div>
-                            </div>
-                        </div>
-                        </div>
+                    </div>
 
-                    <button type="submit" name="simpan_umkm" class="btn btn-primary" style="width: 100%; padding: 18px; margin-top:30px;">
+                    <div style="text-align:center; margin-bottom:30px;">
+                        <button type="button" class="btn btn-secondary" onclick="addProductField()">
+                            <span class="material-symbols-rounded">add_circle</span> Tambah Produk Lain
+                        </button>
+                    </div>
+
+                    <button type="submit" name="simpan_umkm" class="btn btn-primary" style="width: 100%; padding: 18px;">
                         <span class="material-symbols-rounded">save</span> Simpan Data UMKM & Produk
                     </button>
                 </form>
@@ -493,7 +539,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         if(!chk.checked) inp.focus();
                     }
 
-                    // Fungsi Drag & Drop untuk Multiple Upload Areas
                     function setupUploadArea(areaId, inputId, textId) {
                         const area = document.getElementById(areaId);
                         const input = document.getElementById(inputId);
@@ -530,10 +575,57 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         });
                     }
 
-                    // Inisialisasi untuk Foto Usaha dan Foto Produk
+                    let productCount = 1; // Start from 1 since 0 is default
+
+                    function addProductField() {
+                        const wrapper = document.getElementById('products-wrapper');
+                        const newIndex = productCount;
+                        
+                        const div = document.createElement('div');
+                        div.className = 'product-item';
+                        div.style.cssText = 'border: 1px dashed var(--accent-color); padding:20px; border-radius:12px; margin-bottom:20px; position:relative;';
+                        
+                        div.innerHTML = `
+                            <button type="button" onclick="this.parentElement.remove()" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#e74c3c; cursor:pointer;">
+                                <span class="material-symbols-rounded">delete</span>
+                            </button>
+                            <h5 style="margin-top:0; color:var(--accent-color);">Produk #${newIndex + 1}</h5>
+                            <div class="form-row">
+                                <div class="flex-grow-2">
+                                    <label>Nama Produk</label>
+                                    <input type="text" name="nama_produk[]" class="form-control" required placeholder="Contoh: Produk Lain">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label>Harga (Rp)</label>
+                                    <input type="number" name="harga_produk[]" class="form-control" required placeholder="15000">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <label>Deskripsi Produk</label>
+                                <textarea name="deskripsi_produk[]" class="form-control" rows="2"></textarea>
+                            </div>
+                            <div>
+                                <label>Foto Produk (MinIO)</label>
+                                <div class="upload-area" id="upload-area-produk-${newIndex}">
+                                    <input type="file" name="foto_produk[]" id="input-foto-produk-${newIndex}" accept="image/*" required>
+                                    <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
+                                    <div class="upload-text" id="upload-text-produk-${newIndex}"><strong>Klik untuk upload</strong> atau drag & drop foto produk di sini</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        wrapper.appendChild(div);
+                        
+                        // Init upload area for new element
+                        setupUploadArea(`upload-area-produk-${newIndex}`, `input-foto-produk-${newIndex}`, `upload-text-produk-${newIndex}`);
+                        
+                        productCount++;
+                    }
+
                     document.addEventListener("DOMContentLoaded", function() {
                         setupUploadArea('upload-area-usaha', 'input-foto-usaha', 'upload-text-usaha');
-                        setupUploadArea('upload-area-produk', 'input-foto-produk', 'upload-text-produk');
+                        // Init default product 0
+                        setupUploadArea('upload-area-produk-0', 'input-foto-produk-0', 'upload-text-produk-0');
                     });
                 </script>
             </div>
