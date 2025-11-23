@@ -33,7 +33,6 @@ function slugify($text) {
 
 // --- HELPER: UPLOAD MINIO WEBP ---
 function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
-    // Cek apakah error = 0 (UPLOAD_ERR_OK)
     if (isset($fileArray) && $fileArray['error'] === UPLOAD_ERR_OK) {
         $tmpName = $fileArray['tmp_name'];
         $imageInfo = getimagesize($tmpName);
@@ -157,33 +156,15 @@ if (isset($_POST['simpan_umkm'])) {
     // C. Insert Tabel UMKM
     $stmtUmkm = $conn->prepare("INSERT INTO umkm (nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)");
     
-    // PERBAIKAN: String tipe data disesuaikan dengan urutan variabel
-    // s=string, d=double, i=integer
     $stmtUmkm->bind_param("ssssssddsiiisisis", 
-        $namaUsaha, 
-        $deskripsiUsaha, 
-        $kategori, 
-        $pemilik, 
-        $kontak, 
-        $alamat, 
-        $lat, 
-        $lng, 
-        $pathFotoUsaha, 
-        $qris, 
-        $punyaWa, 
-        $waSama, 
-        $waBeda, 
-        $punyaIg, 
-        $userIg, 
-        $punyaFb, 
-        $linkFb
+        $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
+        $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
     );
 
     if ($stmtUmkm->execute()) {
         $newUmkmId = $conn->insert_id;
 
         // D. LOOP INSERT PRODUK (Multiple)
-        // Kita meloop berdasarkan array nama_produk
         if (isset($_POST['nama_produk']) && is_array($_POST['nama_produk'])) {
             $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
             
@@ -191,12 +172,8 @@ if (isset($_POST['simpan_umkm'])) {
                 $hrgProduk = str_replace('.', '', $_POST['harga_produk'][$key]);
                 $descProduk = $_POST['deskripsi_produk'][$key];
                 
-                // Handle Upload Foto Produk per Index
                 $pathFotoProduk = null;
-                
-                // Cek apakah ada file upload untuk index ini
                 if (isset($_FILES['foto_produk']['name'][$key]) && $_FILES['foto_produk']['error'][$key] === UPLOAD_ERR_OK) {
-                    // Kita perlu menyusun ulang array file agar sesuai format fungsi uploadImageToMinio
                     $singleFile = [
                         'name' => $_FILES['foto_produk']['name'][$key],
                         'type' => $_FILES['foto_produk']['type'][$key],
@@ -208,7 +185,6 @@ if (isset($_POST['simpan_umkm'])) {
                     $cleanNamaProduk = slugify($nmProduk);
                     $cleanNamaUsaha = slugify($namaUsaha);
                     $tgl = date('Ymd-His');
-                    // Tambah random number biar gak bentrok kalau upload banyak sekaligus
                     $keyProduk = "websiteutama/umkm/fotoprodukumkm/" . $cleanNamaProduk . $cleanNamaUsaha . $tgl . rand(10,99) . ".webp";
                     
                     $pathFotoProduk = uploadImageToMinio($singleFile, $keyProduk, $s3, $bucketName);
@@ -248,7 +224,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Desa Karangasem</title>
+
     <link rel="icon" href="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem_admin.png" type="image/png">
+
     <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@200..700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -390,15 +368,15 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                     </div>
                 </div>
 
-                <form method="POST" enctype="multipart/form-data">
+                <form id="form-umkm" method="POST" enctype="multipart/form-data" novalidate>
                     <h4>A. Informasi Usaha</h4>
                     <div class="form-row">
                         <div class="flex-grow-2">
-                            <label>Nama Usaha</label>
+                            <label>Nama Usaha <span class="required-mark">*</span></label>
                             <input type="text" name="nama_usaha" class="form-control" required placeholder="Contoh: Keripik Singkong Barokah">
                         </div>
                         <div class="flex-grow-1">
-                            <label>Kategori</label>
+                            <label>Kategori <span class="required-mark">*</span></label>
                             <select name="kategori" class="form-control" required>
                                 <option value="warung">Warung</option>
                                 <option value="pedagangkakilima">Pedagang Kaki Lima</option>
@@ -409,11 +387,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
 
                     <div class="form-row">
                         <div class="flex-grow-1">
-                            <label>Nama Pemilik</label>
+                            <label>Nama Pemilik <span class="required-mark">*</span></label>
                             <input type="text" name="nama_pemilik" class="form-control" required placeholder="Nama Lengkap">
                         </div>
                         <div class="flex-grow-1">
-                            <label>Kontak HP (Utama)</label>
+                            <label>Kontak HP (Utama) <span class="required-mark">*</span></label>
                             <input type="text" name="kontak" class="form-control" required placeholder="08xxxxx">
                         </div>
                     </div>
@@ -424,12 +402,12 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label>Alamat Lengkap</label>
+                        <label>Alamat Lengkap <span class="required-mark">*</span></label>
                         <textarea name="alamat" class="form-control" rows="2" required placeholder="Jalan, RT/RW, Dusun..."></textarea>
                     </div>
                     
                     <div style="margin-bottom: 25px;">
-                        <label>Lokasi Usaha (Klik pada peta)</label>
+                        <label>Lokasi Usaha (Klik pada peta) <span class="required-mark">*</span></label>
                         <div id="map-container" style="height: 300px; width: 100%;"></div>
                         <input type="hidden" name="latitude" id="input-lat">
                         <input type="hidden" name="longitude" id="input-lng">
@@ -437,7 +415,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
 
                     <div class="form-row">
                         <div style="flex:1;">
-                            <label>Foto Usaha (MinIO)</label>
+                            <label>Foto Usaha (MinIO) <span class="required-mark">*</span></label>
                             <div class="upload-area" id="upload-area-usaha">
                                 <input type="file" name="foto_usaha" id="input-foto-usaha" accept="image/*" required>
                                 <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
@@ -493,11 +471,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                             <h5 style="margin-top:0; color:var(--accent-color);">Produk #1</h5>
                             <div class="form-row">
                                 <div class="flex-grow-2">
-                                    <label>Nama Produk</label>
+                                    <label>Nama Produk <span class="required-mark">*</span></label>
                                     <input type="text" name="nama_produk[]" class="form-control" required placeholder="Contoh: Keripik Rasa Balado">
                                 </div>
                                 <div class="flex-grow-1">
-                                    <label>Harga (Rp)</label>
+                                    <label>Harga (Rp) <span class="required-mark">*</span></label>
                                     <input type="number" name="harga_produk[]" class="form-control" required placeholder="15000">
                                 </div>
                             </div>
@@ -506,7 +484,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                 <textarea name="deskripsi_produk[]" class="form-control" rows="2"></textarea>
                             </div>
                             <div>
-                                <label>Foto Produk (MinIO)</label>
+                                <label>Foto Produk (MinIO) <span class="required-mark">*</span></label>
                                 <div class="upload-area" id="upload-area-produk-0">
                                     <input type="file" name="foto_produk[]" id="input-foto-produk-0" accept="image/*" required>
                                     <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
@@ -593,11 +571,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                             <h5 style="margin-top:0; color:var(--accent-color);">Produk #${newIndex + 1}</h5>
                             <div class="form-row">
                                 <div class="flex-grow-2">
-                                    <label>Nama Produk</label>
+                                    <label>Nama Produk <span class="required-mark">*</span></label>
                                     <input type="text" name="nama_produk[]" class="form-control" required placeholder="Contoh: Produk Lain">
                                 </div>
                                 <div class="flex-grow-1">
-                                    <label>Harga (Rp)</label>
+                                    <label>Harga (Rp) <span class="required-mark">*</span></label>
                                     <input type="number" name="harga_produk[]" class="form-control" required placeholder="15000">
                                 </div>
                             </div>
@@ -606,7 +584,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                 <textarea name="deskripsi_produk[]" class="form-control" rows="2"></textarea>
                             </div>
                             <div>
-                                <label>Foto Produk (MinIO)</label>
+                                <label>Foto Produk (MinIO) <span class="required-mark">*</span></label>
                                 <div class="upload-area" id="upload-area-produk-${newIndex}">
                                     <input type="file" name="foto_produk[]" id="input-foto-produk-${newIndex}" accept="image/*" required>
                                     <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
@@ -617,15 +595,12 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         
                         wrapper.appendChild(div);
                         
-                        // Init upload area for new element
                         setupUploadArea(`upload-area-produk-${newIndex}`, `input-foto-produk-${newIndex}`, `upload-text-produk-${newIndex}`);
-                        
                         productCount++;
                     }
 
                     document.addEventListener("DOMContentLoaded", function() {
                         setupUploadArea('upload-area-usaha', 'input-foto-usaha', 'upload-text-usaha');
-                        // Init default product 0
                         setupUploadArea('upload-area-produk-0', 'input-foto-produk-0', 'upload-text-produk-0');
                     });
                 </script>
@@ -689,10 +664,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                         <tbody>
                             <?php
                             $sqlFull = "SELECT u.*, 
-                                           p.id as id_produk, p.nama_produk, p.harga_produk, p.deskripsi_produk, p.path_foto_produk 
-                                    FROM umkm u 
-                                    LEFT JOIN umkmproduk p ON u.id = p.umkm_id 
-                                    ORDER BY u.nama_usaha ASC";
+                                            p.id as id_produk, p.nama_produk, p.harga_produk, p.deskripsi_produk, p.path_foto_produk 
+                                        FROM umkm u 
+                                        LEFT JOIN umkmproduk p ON u.id = p.umkm_id 
+                                        ORDER BY u.nama_usaha ASC";
                             $resFull = $conn->query($sqlFull);
                             
                             $umkmData = [];

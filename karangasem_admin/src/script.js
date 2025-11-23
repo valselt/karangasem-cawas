@@ -139,7 +139,52 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // ============================================================
-  // 3. LOGIC FORM & PETA (LEAFLET JS) - SUDAH DIPERBAIKI
+  // 3. LOGIC VALIDASI FORM UMKM & PETA
+  // ============================================================
+  const formUmkm = document.getElementById('form-umkm');
+  
+  if (formUmkm) {
+      formUmkm.addEventListener('submit', function(e) {
+          // A. CEK SEMUA INPUT REQUIRED BIASA (Text, Number, Select, File)
+          const requiredInputs = formUmkm.querySelectorAll('[required]');
+          
+          for (let input of requiredInputs) {
+              if (!input.value.trim()) {
+                  e.preventDefault(); // Stop submit
+                  
+                  // Coba ambil nama field dari label terdekat
+                  let labelText = "Field ini";
+                  // Mencari label saudara atau parent
+                  let parent = input.closest('div'); 
+                  if (parent) {
+                      let label = parent.querySelector('label');
+                      if (label) labelText = label.innerText.replace('*', '').trim();
+                  }
+
+                  showPopup('error', 'Gagal Simpan', `Mohon isi bagian: <strong>${labelText}</strong> terlebih dahulu.`);
+                  
+                  // Scroll ke input yang kosong
+                  input.scrollIntoView({behavior: 'smooth', block: 'center'});
+                  input.focus();
+                  return; // Stop checking loop
+              }
+          }
+
+          // B. CEK KHUSUS PETA (Lat & Lng Hidden Input)
+          const lat = document.getElementById('input-lat').value;
+          const lng = document.getElementById('input-lng').value;
+          
+          if (!lat || !lng || lat == 0 || lng == 0) {
+              e.preventDefault();
+              showPopup('error', 'Lokasi Kosong', 'Silakan klik titik lokasi usaha pada peta.');
+              document.getElementById('map-container').scrollIntoView({behavior: 'smooth', block: 'center'});
+              return;
+          }
+      });
+  }
+
+  // ============================================================
+  // 4. LOGIC PETA & FORM LAINNYA
   // ============================================================
   const jenisSelect = document.getElementById("select-jenis");
   const containerTempat = document.getElementById("container-tempat");
@@ -235,10 +280,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ============================================================
-  // 4. DRAG & DROP & REORDER (TETAP SAMA DENGAN TAMBAHAN MULTI ID)
+  // 5. DRAG & DROP & REORDER (TETAP SAMA)
   // ============================================================
   
-  // Fungsi Helper agar bisa dipakai di Potensi (1 upload) dan UMKM (2 upload)
   function setupUploadArea(areaId, inputId, textId) {
         const area = document.getElementById(areaId);
         const input = document.getElementById(inputId);
@@ -264,7 +308,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 input.files = files;
-                // Update teks
                 if(text) text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
             }
         });
@@ -276,13 +319,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
   }
 
-  // Panggil fungsi setup untuk Potensi Desa
   setupUploadArea('upload-area', 'input-foto', 'upload-text');
-
-  // Panggil fungsi setup untuk UMKM (Foto Usaha & Produk)
   setupUploadArea('upload-area-usaha', 'input-foto-usaha', 'upload-text-usaha');
   setupUploadArea('upload-area-produk', 'input-foto-produk', 'upload-text-produk');
-
 
   // Logic Sortable Table (Reorder)
   const sortableList = document.getElementById("sortable-list");
