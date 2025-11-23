@@ -68,6 +68,97 @@
           </div>
         </div>
       </div>
+      <div class="section-2">
+        <div class="section-2-1">
+          <span class="text-title">Berita Desa</span>
+          <div class="other-button">
+            <span class="material-symbols-rounded">more_horiz</span>
+            <p>Selengkapnya</p>
+          </div>
+        </div>
+        <div class="section-2-2">
+          <div class="berita-landingpage" id="berita-latest-1">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-2">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-3">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-4">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-5">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-6">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-7">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+          <div class="berita-landingpage" id="berita-latest-8">
+            <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/foto.jpg"/>
+            <div class="berita-info">
+              <div class="berita-shell-title">
+                <span>Ini Judul</span>
+                <p>Ini Tanggal</p>
+              </div>
+              <p class="isi-berita">Ini Isi Berita</p>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="section-3">
         <div class="section-3-1">
           <span class="text-title">Lokasi Desa</span>

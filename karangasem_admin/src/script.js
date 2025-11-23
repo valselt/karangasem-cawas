@@ -112,11 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (status === "success_acc") showPopup("success", "Berhasil!", "UMKM telah disetujui dan aktif.");
       else if (status === "success_add") showPopup("success", "Berhasil!", "Data berhasil ditambahkan.");
       else if (status === "success_edit") showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
-      
-      // --- TAMBAHKAN BARIS INI ---
-      else if (status === "success_deactivate") showPopup("success", "Non-Aktif!", "UMKM berhasil dinonaktifkan (kembali ke pending).");
-      // ---------------------------
-
+      else if (status === "success_deactivate") showPopup("success", "Non-Aktif!", "UMKM berhasil dinonaktifkan.");
       else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
 
       const url = new URL(window.location);
@@ -124,14 +120,13 @@ document.addEventListener("DOMContentLoaded", function () {
       window.history.replaceState({}, "", url);
   }
 
+  // Event Listeners Global (Delete, Acc, Nonaktif)
   document.querySelectorAll(".btn-delete").forEach((btn) => {
     btn.addEventListener("click", function (e) {
       e.preventDefault(); 
       const url = this.getAttribute("href"); 
       const confirmMsg = this.getAttribute("data-confirm") || "Apakah Anda yakin ingin menghapus data ini?";
-      showPopup("warning", "Konfirmasi Hapus", confirmMsg, () => {
-        window.location.href = url; 
-      });
+      showPopup("warning", "Konfirmasi Hapus", confirmMsg, () => { window.location.href = url; });
     });
   });
 
@@ -139,9 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function (e) {
       e.preventDefault();
       const url = this.getAttribute("href");
-      showPopup("success", "Terima UMKM?", "UMKM ini akan ditampilkan di website utama.", () => {
-          window.location.href = url;
-      });
+      showPopup("success", "Terima UMKM?", "UMKM ini akan ditampilkan di website utama.", () => { window.location.href = url; });
     });
   });
 
@@ -149,53 +142,44 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function (e) {
       e.preventDefault();
       const url = this.getAttribute("href");
-      // Gunakan Popup Warning
-      showPopup("warning", "Non-Aktifkan UMKM?", "UMKM ini tidak akan tampil di website utama.", () => {
-          window.location.href = url;
-      });
+      showPopup("warning", "Non-Aktifkan UMKM?", "UMKM ini tidak akan tampil di website utama.", () => { window.location.href = url; });
     });
   });
 
   // ============================================================
-  // 3. LOGIC VALIDASI FORM UMKM (MULTI ERROR CHECK)
+  // 3. HELPER: GET FIELD NAME (UNTUK VALIDASI)
   // ============================================================
-  const formUmkm = document.getElementById('form-umkm');
-  
-  if (formUmkm) {
-      // Fungsi Bantuan untuk mencari Nama Label yang benar
-      function getFieldName(input) {
-          let label = null;
-          
-          // Coba cari label di parent/container terdekat
-          // Mencakup: flex-grow, div biasa, atau upload-area punya parent
-          let wrapper = input.closest('.flex-grow-1, .flex-grow-2, div[style*="margin-bottom"], .form-row > div');
-          
-          // Khusus untuk Upload Area (input ada di dalam .upload-area, label di luarnya)
-          if (input.closest('.upload-area')) {
-              wrapper = input.closest('.upload-area').parentElement;
-          }
-
-          if (wrapper) {
-              label = wrapper.querySelector('label');
-          }
-
-          // Jika ketemu label, ambil teksnya, buang tanda bintang (*)
-          if (label) {
-              return label.innerText.replace('*', '').trim();
-          }
-          
-          // Fallback jika benar-benar tidak ketemu (misal input hidden)
-          return "Data Input";
+  function getFieldName(input) {
+      let label = null;
+      // Cari label di parent/container terdekat
+      let wrapper = input.closest('.flex-grow-1, .flex-grow-2, div[style*="margin-bottom"], .form-row > div');
+      
+      // Khusus untuk Upload Area
+      if (input.closest('.upload-area')) {
+          wrapper = input.closest('.upload-area').parentElement;
       }
 
-      formUmkm.addEventListener('submit', function(e) {
-          let missingFields = []; // Array untuk menampung nama field yang kosong
+      if (wrapper) {
+          label = wrapper.querySelector('label');
+      }
 
-          // A. CEK SEMUA INPUT REQUIRED
+      if (label) {
+          return label.innerText.replace('*', '').trim();
+      }
+      return "Data Input";
+  }
+
+  // ============================================================
+  // 4. VALIDASI FORM UMKM
+  // ============================================================
+  const formUmkm = document.getElementById('form-umkm');
+  if (formUmkm) {
+      formUmkm.addEventListener('submit', function(e) {
+          let missingFields = []; 
+
+          // A. Check Standard Required
           const requiredInputs = formUmkm.querySelectorAll('[required]');
-          
           requiredInputs.forEach(input => {
-              // Cek jika kosong (untuk file cek files.length)
               let isEmpty = false;
               if (input.type === 'file') {
                   if (input.files.length === 0) isEmpty = true;
@@ -205,21 +189,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
               if (isEmpty) {
                   let fieldName = getFieldName(input);
-                  // Cek duplikat (misal ada banyak produk, namanya sama)
-                  if (!missingFields.includes(fieldName)) {
-                      missingFields.push(fieldName);
-                  }
-                  // Opsional: Beri highlight merah di input
+                  if (!missingFields.includes(fieldName)) missingFields.push(fieldName);
                   input.style.borderColor = "#e74c3c"; 
               } else {
-                  input.style.borderColor = ""; // Reset warna jika sudah diisi
+                  input.style.borderColor = ""; 
               }
           });
 
-          // B. CEK KHUSUS PETA (Lat & Lng Hidden Input)
+          // B. Check Map
           const lat = document.getElementById('input-lat').value;
           const lng = document.getElementById('input-lng').value;
-          
           if (!lat || !lng || lat == 0 || lng == 0) {
               missingFields.push("Lokasi Usaha (Klik Peta)");
               const mapContainer = document.getElementById('map-container');
@@ -229,24 +208,82 @@ document.addEventListener("DOMContentLoaded", function () {
               if(mapContainer) mapContainer.style.borderColor = "";
           }
 
-          // C. JIKA ADA ERROR, TAMPILKAN POPUP LIST
           if (missingFields.length > 0) {
-              e.preventDefault(); // Stop submit
-              
-              // Buat list HTML
+              e.preventDefault(); 
               let listHTML = "<ul style='text-align:left; margin-top:10px; color:#555;'>";
-              missingFields.forEach(field => {
-                  listHTML += `<li style="margin-bottom:5px;"><b>${field}</b> belum diisi.</li>`;
-              });
+              missingFields.forEach(field => { listHTML += `<li style="margin-bottom:5px;"><b>${field}</b> belum diisi.</li>`; });
               listHTML += "</ul>";
-
               showPopup('error', 'Data Belum Lengkap', `Mohon lengkapi bagian berikut:${listHTML}`);
           }
       });
   }
 
   // ============================================================
-  // 4. LOGIC PETA & FORM LAINNYA (TETAP SAMA)
+  // 5. VALIDASI FORM POTENSI DESA (BARU)
+  // ============================================================
+  const formPotensi = document.getElementById('form-potensi');
+  if (formPotensi) {
+      formPotensi.addEventListener('submit', function(e) {
+          let missingFields = []; 
+
+          // A. Check Standard Required (Nama, Jenis, Deskripsi, Foto)
+          const requiredInputs = formPotensi.querySelectorAll('[required]');
+          requiredInputs.forEach(input => {
+              let isEmpty = false;
+              if (input.type === 'file') {
+                  if (input.files.length === 0) isEmpty = true;
+              } else {
+                  if (!input.value.trim()) isEmpty = true;
+              }
+
+              if (isEmpty) {
+                  let fieldName = getFieldName(input);
+                  if (!missingFields.includes(fieldName)) missingFields.push(fieldName);
+                  input.style.borderColor = "#e74c3c"; 
+              } else {
+                  input.style.borderColor = ""; 
+              }
+          });
+
+          // B. Check Kondisional berdasarkan Jenis
+          const jenisSelect = document.getElementById('select-jenis');
+          const jenisVal = jenisSelect ? jenisSelect.value : '';
+
+          if (jenisVal === 'tempat') {
+              // Validasi Peta
+              const lat = document.getElementById('input-lat').value;
+              const lng = document.getElementById('input-lng').value;
+              const mapEl = document.getElementById('map-container');
+              
+              if (!lat || !lng || lat == 0) {
+                  missingFields.push("Lokasi (Klik Peta)");
+                  if(mapEl) mapEl.style.borderColor = "#e74c3c";
+              } else {
+                  if(mapEl) mapEl.style.borderColor = "";
+              }
+          } else if (jenisVal === 'budaya') {
+              // Validasi Link
+              const linkInput = document.getElementById('input-link');
+              if (linkInput && !linkInput.value.trim()) {
+                  missingFields.push("Link Video/Website");
+                  linkInput.style.borderColor = "#e74c3c";
+              } else if(linkInput) {
+                  linkInput.style.borderColor = "";
+              }
+          }
+
+          if (missingFields.length > 0) {
+              e.preventDefault(); 
+              let listHTML = "<ul style='text-align:left; margin-top:10px; color:#555;'>";
+              missingFields.forEach(field => { listHTML += `<li style="margin-bottom:5px;"><b>${field}</b> belum diisi.</li>`; });
+              listHTML += "</ul>";
+              showPopup('error', 'Data Belum Lengkap', `Mohon lengkapi bagian berikut:${listHTML}`);
+          }
+      });
+  }
+
+  // ============================================================
+  // 6. LOGIC PETA & FORM LAINNYA (TETAP SAMA)
   // ============================================================
   const jenisSelect = document.getElementById("select-jenis");
   const containerTempat = document.getElementById("container-tempat");
@@ -255,7 +292,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let map = null;
   let marker = null;
 
-  // Logic Potensi Desa
+  // Logic Potensi Desa (Toggle Tampilan)
   if (jenisSelect) {
       if (jenisSelect.value === "tempat") {
         if (containerTempat) containerTempat.classList.remove("d-none");
@@ -326,8 +363,6 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         marker = L.marker(e.latlng).addTo(map);
       }
-      
-      // Hapus border merah jika user sudah klik peta
       const mapEl = document.getElementById('map-container');
       if(mapEl) mapEl.style.borderColor = "";
     });
@@ -344,9 +379,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ============================================================
-  // 5. DRAG & DROP & REORDER
+  // 7. DRAG & DROP & REORDER
   // ============================================================
-  
   function setupUploadArea(areaId, inputId, textId) {
         const area = document.getElementById(areaId);
         const input = document.getElementById(inputId);
@@ -373,7 +407,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (files.length > 0) {
                 input.files = files;
                 if(text) text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
-                // Hapus border merah
                 input.style.borderColor = "";
             }
         });
@@ -381,7 +414,6 @@ document.addEventListener("DOMContentLoaded", function () {
         input.addEventListener('change', function() {
             if (this.files.length > 0) {
                 if(text) text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`;
-                // Hapus border merah
                 input.style.borderColor = "";
             }
         });

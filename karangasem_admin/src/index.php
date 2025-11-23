@@ -276,20 +276,20 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                     <?php endif; ?>
                 </div>
                 
-                <form method="POST" enctype="multipart/form-data">
+                <form id="form-potensi" method="POST" enctype="multipart/form-data" novalidate>
                     <input type="hidden" name="id_potensi" value="<?= $editMode ? ($editData['id'] ?? '') : '' ?>">
                     <input type="hidden" name="foto_lama" value="<?= $editMode ? ($editData['path_foto_potensi'] ?? '') : '' ?>">
 
                     <div class="form-row">
                         <div class="flex-grow-2"> 
-                            <label>Nama Potensi</label>
+                            <label>Nama Potensi <span class="required-mark">*</span></label>
                             <input type="text" name="nama" id="input-nama" class="form-control" 
                                    placeholder="Contoh: Sendang Bulus" required
                                    value="<?= $editMode ? htmlspecialchars($editData['nama_potensi'] ?? '') : '' ?>">
                         </div>
                         <div class="flex-grow-1"> 
-                            <label>Jenis</label>
-                            <select name="jenis" id="select-jenis" class="form-control">
+                            <label>Jenis <span class="required-mark">*</span></label>
+                            <select name="jenis" id="select-jenis" class="form-control" required>
                                 <option value="" disabled <?= !$editMode ? 'selected' : '' ?>>-- Pilih --</option>
                                 <option value="tempat" <?= ($editMode && ($editData['jenis_potensi'] ?? '') == 'tempat') ? 'selected' : '' ?>>Tempat</option>
                                 <option value="budaya" <?= ($editMode && ($editData['jenis_potensi'] ?? '') == 'budaya') ? 'selected' : '' ?>>Budaya</option>
@@ -298,25 +298,25 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                     </div>
 
                     <div style="margin-bottom: 25px;">
-                        <label>Deskripsi Singkat</label>
-                        <textarea name="deskripsi" class="form-control" placeholder="Jelaskan potensi..." rows="3"><?= $editMode ? htmlspecialchars($editData['deskripsi_potensi'] ?? '') : '' ?></textarea>
+                        <label>Deskripsi Singkat <span class="required-mark">*</span></label>
+                        <textarea name="deskripsi" class="form-control" placeholder="Jelaskan potensi..." rows="3" required><?= $editMode ? htmlspecialchars($editData['deskripsi_potensi'] ?? '') : '' ?></textarea>
                     </div>
 
                     <div id="container-tempat" class="<?= ($editMode && ($editData['jenis_potensi'] ?? '') == 'tempat') ? '' : 'd-none' ?>" style="margin-bottom: 25px;">
-                        <label>Lokasi (Klik pada peta)</label>
+                        <label>Lokasi (Klik pada peta) <span class="required-mark">*</span></label>
                         <div id="map-container" style="height: 350px; width: 100%;"></div>
                         <input type="hidden" name="latitude" id="input-lat" value="<?= $editMode ? ($editData['latitude_potensi'] ?? '') : '' ?>">
                         <input type="hidden" name="longitude" id="input-lng" value="<?= $editMode ? ($editData['longitude_potensi'] ?? '') : '' ?>">
                     </div>
 
                     <div id="container-budaya" class="<?= ($editMode && ($editData['jenis_potensi'] ?? '') == 'budaya') ? '' : 'd-none' ?>" style="margin-bottom: 25px;">
-                        <label>Link Video/Website</label>
-                        <input type="url" name="link_website" class="form-control" placeholder="https://..." 
+                        <label>Link Video/Website <span class="required-mark">*</span></label>
+                        <input type="url" name="link_website" id="input-link" class="form-control" placeholder="https://..." 
                                value="<?= $editMode ? htmlspecialchars($editData['link_potensi'] ?? '') : '' ?>">
                     </div>
 
                     <div style="margin-bottom: 30px;">
-                        <label>Foto Utama <?= $editMode ? '(Biarkan kosong jika tidak ingin mengubah)' : '' ?></label>
+                        <label>Foto Utama <?= $editMode ? '(Biarkan kosong jika tidak ingin mengubah)' : '<span class="required-mark">*</span>' ?></label>
                         <?php if ($editMode && !empty($editData['path_foto_potensi'])): ?>
                             <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
                                 <img src="<?= htmlspecialchars($editData['path_foto_potensi']) ?>" style="height: 60px; border-radius: 8px;">
