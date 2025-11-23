@@ -1,168 +1,166 @@
 <?php
-// LOAD KONEKSI
-include '../koneksi.php';
+// --- SETUP DEBUGGING ---
+ini_set('display_errors', 0); // Matikan display error agar tidak merusak respon JSON/AJAX
+error_reporting(E_ALL);
 
-// LOAD AWS SDK
-require 'vendor/autoload.php'; 
+function catatLog($pesan) {
+    $waktu = date("Y-m-d H:i:s");
+    file_put_contents("debug_log.txt", "[$waktu] $pesan" . PHP_EOL, FILE_APPEND);
+}
+
+catatLog("=== MULAI REQUEST BARU ===");
+
+// --- 1. LOAD KONEKSI ---
+// Cek folder koneksi (Naik 1 level atau 2 level)
+$pathKoneksi = '';
+if (file_exists('../koneksi.php')) {
+    $pathKoneksi = '../koneksi.php';
+} elseif (file_exists('../../koneksi.php')) {
+    $pathKoneksi = '../../koneksi.php';
+} else {
+    catatLog("CRITICAL: File koneksi.php tidak ditemukan!");
+    http_response_code(500); die();
+}
+
+include $pathKoneksi;
+if (!$conn) {
+    catatLog("CRITICAL: Koneksi database gagal.");
+    http_response_code(500); die();
+}
+catatLog("Database Connected. Host: " . $conn->host_info);
+
+// --- 2. LOAD AWS SDK (AUTO DETECT PATH) ---
+// Ini perbaikan utamanya: Mencari folder vendor di berbagai level direktori
+$possiblePaths = [
+    __DIR__ . '/vendor/autoload.php',       // Cek di folder ini
+    __DIR__ . '/../vendor/autoload.php',    // Cek naik 1 level
+    __DIR__ . '/../../vendor/autoload.php', // Cek naik 2 level
+    '/var/www/html/vendor/autoload.php'     // Cek path absolut Docker
+];
+
+$vendorFound = false;
+foreach ($possiblePaths as $path) {
+    if (file_exists($path)) {
+        require $path;
+        catatLog("Vendor ditemukan di: $path");
+        $vendorFound = true;
+        break;
+    }
+}
+
+if (!$vendorFound) {
+    catatLog("CRITICAL: Folder 'vendor' TIDAK DITEMUKAN di manapun!");
+    catatLog("Posisi file saat ini: " . __DIR__);
+    http_response_code(500);
+    die("Server Error: Library AWS hilang.");
+}
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
-// =========================================
-// 1. KONFIGURASI MINIO (MODE DOMAIN)
-// =========================================
+catatLog("AWS SDK Loaded Berhasil.");
+
+// --- 3. KONFIGURASI MINIO ---
 $minioConfig = [
     'version'     => 'latest',
     'region'      => 'us-east-1',
-    
-    // ANDA TETAP PAKAI DOMAIN (Sesuai Permintaan)
     'endpoint'    => 'https://cdn.ivanaldorino.web.id', 
-    
     'use_path_style_endpoint' => true,
     'credentials' => [
-        'key'    => 'admin',       // Pastikan ini benar
-        'secret' => 'aldorino04',  // Pastikan ini benar
+        'key'    => 'admin',
+        'secret' => 'aldorino04',
     ],
-    // [PENTING] MATIKAN VERIFIKASI SSL
-    // Ini wajib agar Docker tidak menolak sertifikat HTTPS domain sendiri
     'http' => [
-        'verify' => false
+        'verify' => false // Bypass SSL
     ]
 ];
-
 $bucketName = 'karangasem'; 
-$cdnUrlPrefix = "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/lapordesa/";
-$folderMinio  = "websiteutama/lapordesa/"; 
 
-// =========================================
-// CEK METODE REQUEST
-// =========================================
+// --- 4. VALIDASI INPUT ---
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    http_response_code(405); 
-    die("Metode tidak diizinkan.");
+    http_response_code(405); die();
 }
 
-// =========================================
-// VALIDASI INPUT
-// =========================================
-$nama       = $_POST['nama_user'] ?? '';
-$email      = $_POST['email_user'] ?? '';
-$nomor      = $_POST['nomor_user'] ?? '';
-$alamat     = $_POST['alamat_user'] ?? '';
-$rw         = $_POST['lokasi_rw'] ?? '';
-$pesan      = $_POST['isi_pesan'] ?? '';
-$koordinat  = $_POST['koordinat_gps'] ?? '';
+$nama = $_POST['nama_user'] ?? 'Tanpa Nama';
+catatLog("User: $nama");
 
-$latitude = null;
-$longitude = null;
-
-// Pecah Koordinat
-if (!empty($koordinat) && strpos($koordinat, ',') !== false) {
-    list($latitude, $longitude) = explode(",", $koordinat);
-    $latitude = trim($latitude);
-    $longitude = trim($longitude);
-}
-
-// =========================================
-// VALIDASI FILE
-// =========================================
 if (!isset($_FILES['foto-laporan-user']) || $_FILES['foto-laporan-user']['error'] !== UPLOAD_ERR_OK) {
-    http_response_code(400); 
-    die("File tidak valid atau tidak ada.");
+    catatLog("Error Upload: " . ($_FILES['foto-laporan-user']['error'] ?? 'File tidak ada'));
+    http_response_code(400); die();
 }
 
-$fileSize = $_FILES['foto-laporan-user']['size'];
-if ($fileSize > 30 * 1024 * 1024) {
-    http_response_code(400);
-    die("File terlalu besar (Max 30MB).");
+// --- 5. PROSES GAMBAR (METODE FILE SYSTEM) ---
+$tmpName = $_FILES['foto-laporan-user']['tmp_name'];
+$imageInfo = getimagesize($tmpName);
+if (!$imageInfo) {
+    catatLog("File bukan gambar valid.");
+    http_response_code(400); die();
 }
 
-// =========================================
-// PROSES KONVERSI GAMBAR (KE MEMORY)
-// =========================================
-$tmpName      = $_FILES['foto-laporan-user']['tmp_name'];
-$originalName = $_FILES['foto-laporan-user']['name'];
-$fileExt      = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+// Konversi WebP
+$tempWebp = tempnam(sys_get_temp_dir(), 'webp');
+$mime = $imageInfo['mime'];
+$imgResource = null;
 
-// Generate Nama File Unik
-$dateName = date("Ymd-His");
+if ($mime == 'image/jpeg') $imgResource = imagecreatefromjpeg($tmpName);
+elseif ($mime == 'image/png') $imgResource = imagecreatefrompng($tmpName);
+elseif ($mime == 'image/webp') $imgResource = imagecreatefromwebp($tmpName);
+
+if ($imgResource) {
+    imagewebp($imgResource, $tempWebp, 80);
+    imagedestroy($imgResource);
+} else {
+    // Jika gagal buat resource, copy saja file aslinya (fallback)
+    copy($tmpName, $tempWebp);
+}
+
+// --- 6. UPLOAD MINIO ---
 $cleanNama = preg_replace("/[^a-zA-Z0-9-_]/", "", strtolower(str_replace(" ", "-", $nama)));
-$finalFileName = $dateName . "-" . $cleanNama . ".webp";
-$objectKey = $folderMinio . $finalFileName;
+$finalFileName = date("Ymd-His") . "-" . $cleanNama . ".webp";
+$targetKey = "websiteutama/lapordesa/" . $finalFileName;
 
-// Deteksi Tipe File
-switch ($fileExt) {
-    case 'jpg':
-    case 'jpeg':
-        $image = imagecreatefromjpeg($tmpName);
-        break;
-    case 'png':
-        $image = imagecreatefrompng($tmpName);
-        imagepalettetotruecolor($image);
-        imagealphablending($image, true);
-        imagesavealpha($image, true);
-        break;
-    case 'webp':
-        $image = imagecreatefromwebp($tmpName);
-        break;
-    default:
-        http_response_code(415); 
-        die("Format gambar harus JPG, PNG, atau WEBP.");
-}
-
-// Simpan hasil konversi ke variabel (Buffer)
-ob_start(); 
-imagewebp($image, null, 80); 
-$imageContent = ob_get_contents();
-ob_end_clean();
-imagedestroy($image);
-
-// =========================================
-// UPLOAD KE MINIO (Via Domain)
-// =========================================
 try {
     $s3 = new S3Client($minioConfig);
-
-    $s3->putObject([
-        'Bucket'      => $bucketName,
-        'Key'         => $objectKey,
-        'Body'        => $imageContent,
-        'ContentType' => 'image/webp',
-        'ACL'         => 'public-read'
+    $result = $s3->putObject([
+        'Bucket'     => $bucketName,
+        'Key'        => $targetKey,
+        'SourceFile' => $tempWebp, // Metode stabil
+        'ACL'        => 'public-read',
+        'ContentType'=> 'image/webp'
     ]);
-
-    // URL FINAL
-    $pathDB = $cdnUrlPrefix . $finalFileName;
-
+    
+    catatLog("MinIO Upload OK: " . $targetKey);
+    unlink($tempWebp);
 } catch (AwsException $e) {
-    // Jika gagal koneksi ke domain
-    http_response_code(500);
-    // Kirim pesan error detail agar bisa dicek di Inspect Element
-    die("Gagal Upload S3: " . $e->getMessage());
+    catatLog("MinIO Gagal: " . $e->getMessage());
+    unlink($tempWebp);
+    http_response_code(500); die();
 }
 
-// =========================================
-// SIMPAN KE DATABASE
-// =========================================
-$stmt = $conn->prepare("
-    INSERT INTO laporandesa
-    (nama, email, nomor_telepon, alamat, rw, pesan_keluhan, path_keluhan_foto, latitude, longitude)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-");
+// --- 7. DATABASE ---
+$cdnUrlPrefix = "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/lapordesa/";
+$pathDB = $cdnUrlPrefix . $finalFileName;
 
-$stmt->bind_param(
-    "sssssssss",
-    $nama, $email, $nomor, $alamat, $rw, $pesan, $pathDB, $latitude, $longitude
-);
+$sql = "INSERT INTO laporandesa (nama, email, nomor_telepon, alamat, rw, pesan_keluhan, path_keluhan_foto, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+$stmt = $conn->prepare($sql);
+
+$email = $_POST['email_user'] ?? '';
+$nomor = $_POST['nomor_user'] ?? '';
+$alamat = $_POST['alamat_user'] ?? '';
+$rw = $_POST['lokasi_rw'] ?? '';
+$pesan = $_POST['isi_pesan'] ?? '';
+$gps = $_POST['koordinat_gps'] ?? '';
+$lat = null; $lng = null;
+if(!empty($gps) && strpos($gps, ',') !== false) { list($lat, $lng) = explode(",", $gps); }
+
+$stmt->bind_param("sssssssss", $nama, $email, $nomor, $alamat, $rw, $pesan, $pathDB, $lat, $lng);
 
 if ($stmt->execute()) {
-    // SUKSES: Kirim kode 200 (OK)
+    catatLog("DB Insert OK. ID: " . $stmt->insert_id);
     http_response_code(200);
-    echo "Berhasil";
 } else {
-    // GAGAL: Kirim kode 500
+    catatLog("DB Insert Gagal: " . $stmt->error);
     http_response_code(500);
-    echo "Database Error: " . $stmt->error;
 }
 
 $stmt->close();
