@@ -525,3 +525,16 @@ td {
   font-weight: bold;
   margin-left: 4px;
 }
+
+/* Tambahan untuk list error di popup */
+.popup-message ul {
+    list-style-type: disc;
+    margin-left: 20px;
+    padding: 0;
+    text-align: left; /* Penting: List rata kiri */
+}
+
+.popup-message li {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}

@@ -1,5 +1,6 @@
 <?php
 
+ob_start();
 // --- TAMBAHAN PENTING UNTUK MENGATASI 504 TIMEOUT ---
 set_time_limit(600);
 ini_set('memory_limit', '512M');
@@ -415,7 +416,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
 
                     <div class="form-row">
                         <div style="flex:1;">
-                            <label>Foto Usaha (MinIO) <span class="required-mark">*</span></label>
+                            <label>Foto Usaha<span class="required-mark">*</span></label>
                             <div class="upload-area" id="upload-area-usaha">
                                 <input type="file" name="foto_usaha" id="input-foto-usaha" accept="image/*" required>
                                 <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>
@@ -484,7 +485,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                 <textarea name="deskripsi_produk[]" class="form-control" rows="2"></textarea>
                             </div>
                             <div>
-                                <label>Foto Produk (MinIO) <span class="required-mark">*</span></label>
+                                <label>Foto Produk <span class="required-mark">*</span></label>
                                 <div class="upload-area" id="upload-area-produk-0">
                                     <input type="file" name="foto_produk[]" id="input-foto-produk-0" accept="image/*" required>
                                     <div class="upload-icon"><span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span></div>

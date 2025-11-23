@@ -78,7 +78,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     iconContainer.innerHTML = iconHTML;
     titleEl.textContent = title;
-    msgEl.textContent = message;
+    
+    // Menggunakan innerHTML agar tag HTML (<b>, <ul>, <li>) terbaca
+    msgEl.innerHTML = message; 
 
     if (actionCallback) {
       const btnCancel = document.createElement("button");
@@ -139,61 +141,105 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // ============================================================
-  // 3. LOGIC VALIDASI FORM UMKM & PETA
+  // 3. LOGIC VALIDASI FORM UMKM (MULTI ERROR CHECK)
   // ============================================================
   const formUmkm = document.getElementById('form-umkm');
   
   if (formUmkm) {
+      // Fungsi Bantuan untuk mencari Nama Label yang benar
+      function getFieldName(input) {
+          let label = null;
+          
+          // Coba cari label di parent/container terdekat
+          // Mencakup: flex-grow, div biasa, atau upload-area punya parent
+          let wrapper = input.closest('.flex-grow-1, .flex-grow-2, div[style*="margin-bottom"], .form-row > div');
+          
+          // Khusus untuk Upload Area (input ada di dalam .upload-area, label di luarnya)
+          if (input.closest('.upload-area')) {
+              wrapper = input.closest('.upload-area').parentElement;
+          }
+
+          if (wrapper) {
+              label = wrapper.querySelector('label');
+          }
+
+          // Jika ketemu label, ambil teksnya, buang tanda bintang (*)
+          if (label) {
+              return label.innerText.replace('*', '').trim();
+          }
+          
+          // Fallback jika benar-benar tidak ketemu (misal input hidden)
+          return "Data Input";
+      }
+
       formUmkm.addEventListener('submit', function(e) {
-          // A. CEK SEMUA INPUT REQUIRED BIASA (Text, Number, Select, File)
+          let missingFields = []; // Array untuk menampung nama field yang kosong
+
+          // A. CEK SEMUA INPUT REQUIRED
           const requiredInputs = formUmkm.querySelectorAll('[required]');
           
-          for (let input of requiredInputs) {
-              if (!input.value.trim()) {
-                  e.preventDefault(); // Stop submit
-                  
-                  // Coba ambil nama field dari label terdekat
-                  let labelText = "Field ini";
-                  // Mencari label saudara atau parent
-                  let parent = input.closest('div'); 
-                  if (parent) {
-                      let label = parent.querySelector('label');
-                      if (label) labelText = label.innerText.replace('*', '').trim();
-                  }
-
-                  showPopup('error', 'Gagal Simpan', `Mohon isi bagian: <strong>${labelText}</strong> terlebih dahulu.`);
-                  
-                  // Scroll ke input yang kosong
-                  input.scrollIntoView({behavior: 'smooth', block: 'center'});
-                  input.focus();
-                  return; // Stop checking loop
+          requiredInputs.forEach(input => {
+              // Cek jika kosong (untuk file cek files.length)
+              let isEmpty = false;
+              if (input.type === 'file') {
+                  if (input.files.length === 0) isEmpty = true;
+              } else {
+                  if (!input.value.trim()) isEmpty = true;
               }
-          }
+
+              if (isEmpty) {
+                  let fieldName = getFieldName(input);
+                  // Cek duplikat (misal ada banyak produk, namanya sama)
+                  if (!missingFields.includes(fieldName)) {
+                      missingFields.push(fieldName);
+                  }
+                  // Opsional: Beri highlight merah di input
+                  input.style.borderColor = "#e74c3c"; 
+              } else {
+                  input.style.borderColor = ""; // Reset warna jika sudah diisi
+              }
+          });
 
           // B. CEK KHUSUS PETA (Lat & Lng Hidden Input)
           const lat = document.getElementById('input-lat').value;
           const lng = document.getElementById('input-lng').value;
           
           if (!lat || !lng || lat == 0 || lng == 0) {
-              e.preventDefault();
-              showPopup('error', 'Lokasi Kosong', 'Silakan klik titik lokasi usaha pada peta.');
-              document.getElementById('map-container').scrollIntoView({behavior: 'smooth', block: 'center'});
-              return;
+              missingFields.push("Lokasi Usaha (Klik Peta)");
+              const mapContainer = document.getElementById('map-container');
+              if(mapContainer) mapContainer.style.borderColor = "#e74c3c";
+          } else {
+              const mapContainer = document.getElementById('map-container');
+              if(mapContainer) mapContainer.style.borderColor = "";
+          }
+
+          // C. JIKA ADA ERROR, TAMPILKAN POPUP LIST
+          if (missingFields.length > 0) {
+              e.preventDefault(); // Stop submit
+              
+              // Buat list HTML
+              let listHTML = "<ul style='text-align:left; margin-top:10px; color:#555;'>";
+              missingFields.forEach(field => {
+                  listHTML += `<li style="margin-bottom:5px;"><b>${field}</b> belum diisi.</li>`;
+              });
+              listHTML += "</ul>";
+
+              showPopup('error', 'Data Belum Lengkap', `Mohon lengkapi bagian berikut:${listHTML}`);
           }
       });
   }
 
   // ============================================================
-  // 4. LOGIC PETA & FORM LAINNYA
+  // 4. LOGIC PETA & FORM LAINNYA (TETAP SAMA)
   // ============================================================
   const jenisSelect = document.getElementById("select-jenis");
   const containerTempat = document.getElementById("container-tempat");
   const containerBudaya = document.getElementById("container-budaya");
-  const mapContainer = document.getElementById("map-container"); // Cek elemen map
+  const mapContainer = document.getElementById("map-container"); 
   let map = null;
   let marker = null;
 
-  // LOGIC 1: Jika di Halaman Potensi Desa (Ada Dropdown Jenis)
+  // Logic Potensi Desa
   if (jenisSelect) {
       if (jenisSelect.value === "tempat") {
         if (containerTempat) containerTempat.classList.remove("d-none");
@@ -215,16 +261,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
   } 
-  // LOGIC 2: Jika di Halaman UMKM (Tidak ada Dropdown Jenis, tapi ada Map Container)
+  // Logic UMKM
   else if (mapContainer) {
-      // Langsung inisialisasi map karena di form UMKM map selalu terlihat
       initMap();
   }
 
   function initMap() {
     if (!document.getElementById("map-container")) return;
     
-    // Jika map sudah ada, resize saja agar tidak error tampilan
     if (map) {
       setTimeout(() => {
         map.invalidateSize();
@@ -266,6 +310,10 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         marker = L.marker(e.latlng).addTo(map);
       }
+      
+      // Hapus border merah jika user sudah klik peta
+      const mapEl = document.getElementById('map-container');
+      if(mapEl) mapEl.style.borderColor = "";
     });
 
     fetch("karangasem.geojson")
@@ -280,7 +328,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ============================================================
-  // 5. DRAG & DROP & REORDER (TETAP SAMA)
+  // 5. DRAG & DROP & REORDER
   // ============================================================
   
   function setupUploadArea(areaId, inputId, textId) {
@@ -309,12 +357,16 @@ document.addEventListener("DOMContentLoaded", function () {
             if (files.length > 0) {
                 input.files = files;
                 if(text) text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
+                // Hapus border merah
+                input.style.borderColor = "";
             }
         });
 
         input.addEventListener('change', function() {
             if (this.files.length > 0) {
                 if(text) text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`;
+                // Hapus border merah
+                input.style.borderColor = "";
             }
         });
   }
