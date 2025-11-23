@@ -216,6 +216,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'acc_umkm') {
     $conn->query("UPDATE umkm SET diacc = 1 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_acc"); exit; 
 }
 
+if (isset($_GET['action']) && $_GET['action'] == 'nonaktif_umkm') { 
+    $conn->query("UPDATE umkm SET diacc = 0 WHERE id = ".intval($_GET['id'])); 
+    header("Location: ?page=umkm&status=success_deactivate"); 
+    exit; 
+}
+
 $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
 ?>
 
@@ -634,10 +640,28 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
             <h3>Daftar UMKM Aktif</h3>
             <div class="table-container" style="margin-bottom: 40px;">
                 <table>
-                    <thead><tr><th>Nama Usaha</th><th>Pemilik</th><th>Status</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Nama Usaha</th>
+                            <th>Pemilik</th>
+                            <th>Status</th>
+                            <th style="width: 100px;">Aksi</th> </tr>
+                    </thead>
                     <tbody>
                     <?php $resAktif = $conn->query("SELECT * FROM umkm WHERE diacc = 1"); while($row=$resAktif->fetch_assoc()): ?>
-                    <tr><td><?= $row['nama_usaha'] ?></td><td><?= $row['nama_pemilik_usaha'] ?></td><td><span class="text-success">Aktif</span></td></tr>
+                    <tr>
+                        <td><?= htmlspecialchars($row['nama_usaha']) ?></td>
+                        <td><?= htmlspecialchars($row['nama_pemilik_usaha']) ?></td>
+                        <td><span class="text-success">Aktif</span></td>
+                        
+                        <td>
+                            <a href="?page=umkm&action=nonaktif_umkm&id=<?= $row['id'] ?>" 
+                               class="btn btn-danger btn-icon-only btn-nonaktif" 
+                               title="Non-Aktifkan">
+                                <span class="material-symbols-rounded">block</span>
+                            </a>
+                        </td>
+                    </tr>
                     <?php endwhile; ?>
                     </tbody>
                 </table>

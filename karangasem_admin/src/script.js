@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const btnConfirm = document.createElement("button");
       btnConfirm.className = "btn btn-danger"; 
-      btnConfirm.textContent = "Ya, Hapus";
+      btnConfirm.textContent = "Ya";
       btnConfirm.onclick = confirmAction;
 
       btnContainer.appendChild(btnCancel);
@@ -108,15 +108,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const statusEl = document.getElementById("status-message");
   if (statusEl) {
-    const status = statusEl.getAttribute("data-status");
-    if (status === "success_acc") showPopup("success", "Berhasil!", "UMKM telah disetujui dan aktif.");
-    else if (status === "success_add") showPopup("success", "Berhasil!", "Data berhasil ditambahkan.");
-    else if (status === "success_edit") showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
-    else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
+      const status = statusEl.getAttribute("data-status");
+      if (status === "success_acc") showPopup("success", "Berhasil!", "UMKM telah disetujui dan aktif.");
+      else if (status === "success_add") showPopup("success", "Berhasil!", "Data berhasil ditambahkan.");
+      else if (status === "success_edit") showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
+      
+      // --- TAMBAHKAN BARIS INI ---
+      else if (status === "success_deactivate") showPopup("success", "Non-Aktif!", "UMKM berhasil dinonaktifkan (kembali ke pending).");
+      // ---------------------------
 
-    const url = new URL(window.location);
-    url.searchParams.delete("status");
-    window.history.replaceState({}, "", url);
+      else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
+
+      const url = new URL(window.location);
+      url.searchParams.delete("status");
+      window.history.replaceState({}, "", url);
   }
 
   document.querySelectorAll(".btn-delete").forEach((btn) => {
@@ -135,6 +140,17 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       const url = this.getAttribute("href");
       showPopup("success", "Terima UMKM?", "UMKM ini akan ditampilkan di website utama.", () => {
+          window.location.href = url;
+      });
+    });
+  });
+
+  document.querySelectorAll(".btn-nonaktif").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      const url = this.getAttribute("href");
+      // Gunakan Popup Warning
+      showPopup("warning", "Non-Aktifkan UMKM?", "UMKM ini tidak akan tampil di website utama.", () => {
           window.location.href = url;
       });
     });
