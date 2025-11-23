@@ -3,6 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 include '../koneksi.php';
 
 // Get all UMKM
+// UPDATE: Menambahkan "AND diacc = 1" pada query
 $umkmSql = "SELECT id, nama_usaha, deskripsi_usaha, kategori_usaha, 
             nama_pemilik_usaha, kontak_usaha, alamat_usaha, 
             latitude, longitude, path_foto_usaha, qris, created_at,
@@ -10,7 +11,9 @@ $umkmSql = "SELECT id, nama_usaha, deskripsi_usaha, kategori_usaha,
             punya_instagram, username_instagram,
             punya_facebook, link_facebook
             FROM umkm
-            WHERE latitude IS NOT NULL AND longitude IS NOT NULL";
+            WHERE latitude IS NOT NULL 
+            AND longitude IS NOT NULL
+            AND diacc = 1"; 
 
 $res = $conn->query($umkmSql);
 $out = [];
@@ -19,9 +22,6 @@ if ($res) {
     while ($row = $res->fetch_assoc()) {
 
         $id = (int)$row['id'];
-
-        // Opsional: Jika path_foto_usaha juga ingin dibiarkan murni, 
-        // hapus blok if di bawah ini. Jika tidak, biarkan saja.
 
         // Fetch produk
         $prodStmt = $conn->prepare(
@@ -37,9 +37,6 @@ if ($res) {
 
         $prods = [];
         while ($p = $prodRes->fetch_assoc()) {
-            
-            // UPDATE: Logika penambahan '/' pada path_foto_produk DIHAPUS.
-            // Data langsung dimasukkan apa adanya.
             $prods[] = $p;
         }
 

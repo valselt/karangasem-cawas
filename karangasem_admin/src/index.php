@@ -248,6 +248,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Desa Karangasem</title>
+    <link rel="icon" href="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem_admin.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@200..700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
