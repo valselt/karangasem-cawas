@@ -1,224 +1,219 @@
-// GANTI BLOK 'DOMContentLoaded' LAMA ANDA DENGAN INI
-
 document.addEventListener("DOMContentLoaded", () => {
-  // --- KUMPULKAN SEMUA ELEMEN UPLOAD FILE ---
-  const fileInput = document.querySelector("#bukti-foto");
+  console.log("Javascript Lapor Desa Dimuat...");
 
-  // Elemen Desktop
-  const dropArea = document.querySelector(".file-drop-area");
-  const fileTextDesktop = document.querySelector(".file-drop-text-desktop");
-
-  // Elemen Mobile
-  const fileButtonTextMobile = document.querySelector(
-    ".file-button-text-mobile"
-  );
-
-  // Elemen Shared
-  const fileNameDisplay = document.querySelector(".file-upload-filename");
-
-  // --- FUNGSI UNTUK UPDATE TAMPILAN SAAT FILE DIPILIH ---
-  function handleFileSelect(file) {
-    if (file) {
-      // tampilkan nama file
-      fileNameDisplay.textContent = file.name;
-      fileNameDisplay.style.display = "block";
-
-      // sembunyikan teks instruksi
-      if (fileTextDesktop) {
-        fileTextDesktop.style.display = "none";
-      }
-
-      // ubah tombol mobile
-      if (fileButtonTextMobile) {
-        fileButtonTextMobile.textContent = "Ganti File";
-      }
-    }
-  }
-
-  // Pastikan semua elemen ada
-  if (fileInput && dropArea && fileButtonTextMobile && fileNameDisplay) {
-    // --- EVENT LISTENER UNTUK KLIK / PILIH FILE (Desktop & Mobile) ---
-    fileInput.addEventListener("change", () => {
-      // Ambil file dari input
-      const file = fileInput.files[0];
-      handleFileSelect(file);
-    });
-
-    // --- EVENT LISTENERS UNTUK DRAG & DROP (Hanya Desktop) ---
-
-    dropArea.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      dropArea.classList.add("drag-over");
-    });
-
-    dropArea.addEventListener("dragleave", () => {
-      dropArea.classList.remove("drag-over");
-    });
-
-    dropArea.addEventListener("drop", (event) => {
-      event.preventDefault();
-      dropArea.classList.remove("drag-over");
-
-      // Ambil file dari drop event
-      const file = event.dataTransfer.files[0];
-
-      // Masukkan file ke input asli & update tampilan
-      fileInput.files = event.dataTransfer.files;
-      handleFileSelect(file);
-    });
-  }
-
-  // =========================
-  // GPS BUTTON (TOGGLE)
-  // =========================
-
+  // ==========================================
+  // 1. LOGIKA TOMBOL GPS (DIPERBAIKI)
+  // ==========================================
   const gpsBtn = document.querySelector("#ambil-gps");
   const gpsInput = document.querySelector("#koordinat_gps");
+  // Cari icon di dalam button (bisa berupa span atau i)
+  const gpsIcon = gpsBtn ? gpsBtn.querySelector("span") : null;
 
   if (gpsBtn && gpsInput) {
     gpsBtn.addEventListener("click", () => {
+      console.log("Tombol GPS Ditekan");
+
+      // CEK 1: Apakah Browser mendukung?
       if (!navigator.geolocation) {
+        alert("Browser Anda tidak mendukung fitur GPS.");
         return;
       }
 
-      // === Jika tombol sedang aktif → matikan kembali ===
-      if (gpsBtn.classList.contains("active")) {
-        gpsBtn.classList.remove("active");
-        gpsInput.value = ""; // hapus koordinat
-        return; // selesai
+      // CEK 2: Apakah HTTPS? (PENTING!)
+      // GPS tidak akan jalan di HTTP biasa kecuali localhost
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.0.0.')) {
+         alert("⚠️ FITUR DIBLOKIR BROWSER!\n\nFitur GPS hanya bisa digunakan jika website diakses menggunakan HTTPS (Gembok Hijau).\n\nSilakan akses ulang website ini menggunakan https://...");
+         return;
       }
 
-      // === Jika tombol belum aktif → ambil lokasi ===
+      // === FITUR TOGGLE (Matikan jika sudah aktif) ===
+      if (gpsBtn.classList.contains("active")) {
+        gpsBtn.classList.remove("active");
+        gpsInput.value = ""; // Kosongkan input
+        if (gpsIcon) gpsIcon.textContent = "my_location"; // Icon kembali normal
+        // alert("Lokasi dihapus.");
+        return;
+      }
+
+      // === AMBIL LOKASI (LOADING STATE) ===
+      if (gpsIcon) gpsIcon.textContent = "hourglass_top"; // Ubah icon jadi jam pasir
+      gpsBtn.style.cursor = "wait";
+
       navigator.geolocation.getCurrentPosition(
+        // JIKA SUKSES
         (pos) => {
-          // RAW KOORDINAT
-          const latRaw = pos.coords.latitude;
-          const longRaw = pos.coords.longitude;
-          const accuracy = pos.coords.accuracy; // dalam meter
+          const lat = pos.coords.latitude.toFixed(8);
+          const long = pos.coords.longitude.toFixed(8);
+          const akurasi = Math.round(pos.coords.accuracy);
 
-          console.log("RAW GPS:", latRaw, longRaw, "Accuracy:", accuracy);
+          console.log(`Lokasi Ditemukan: ${lat}, ${long} (Akurasi: ${akurasi}m)`);
 
-          // FORMAT 15 DIGIT (jika mau konsisten 15 digit)
-          const lat = latRaw.toFixed(15);
-          const long = longRaw.toFixed(15);
-
+          // Masukkan ke input hidden
           gpsInput.value = `${lat},${long}`;
 
-          // Aktifkan tampilan tombol
+          // Ubah tampilan tombol jadi hijau (Aktif)
           gpsBtn.classList.add("active");
+          gpsBtn.style.cursor = "pointer";
+          if (gpsIcon) gpsIcon.textContent = "check"; // Icon jadi centang
         },
+        // JIKA GAGAL
         (err) => {
-          console.log("GPS ERROR:", err);
+          console.error("GPS Error:", err);
+          gpsBtn.style.cursor = "pointer";
+          if (gpsIcon) gpsIcon.textContent = "my_location"; // Reset icon
+
+          // Deteksi Penyebab Error
+          if (err.code === 1) {
+             alert("GAGAL: Izin lokasi ditolak.\nSilakan izinkan akses lokasi di pengaturan browser/HP Anda.");
+          } else if (err.code === 2) {
+             alert("GAGAL: Sinyal GPS tidak ditemukan.\nPastikan GPS di HP aktif dan coba geser ke area terbuka.");
+          } else if (err.code === 3) {
+             alert("GAGAL: Waktu habis (Timeout) saat mencari sinyal GPS.");
+          } else {
+             alert("GAGAL mengambil lokasi: " + err.message);
+          }
         },
+        // OPSI GPS (Akurasi Tinggi)
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 10000, // Maksimal menunggu 10 detik
           maximumAge: 0,
         }
       );
     });
+  } else {
+    console.error("Elemen tombol GPS (#ambil-gps) tidak ditemukan di HTML!");
   }
 
-  // ===========================
-  // PROSES UPLOAD DENGAN PROGRESS BAR
-  // ===========================
+  // ==========================================
+  // 2. LOGIKA UPLOAD FILE & DRAG DROP
+  // ==========================================
+  const fileInput = document.querySelector("#bukti-foto");
+  const dropArea = document.querySelector(".file-drop-area");
+  const fileTextDesktop = document.querySelector(".file-drop-text-desktop");
+  const fileButtonTextMobile = document.querySelector(".file-button-text-mobile");
+  const fileNameDisplay = document.querySelector(".file-upload-filename");
 
+  function handleFileSelect(file) {
+    if (file) {
+      if (fileNameDisplay) {
+        fileNameDisplay.textContent = "File: " + file.name;
+        fileNameDisplay.style.display = "block";
+      }
+      if (fileTextDesktop) fileTextDesktop.style.display = "none";
+      if (fileButtonTextMobile) fileButtonTextMobile.textContent = "Ganti Foto";
+    }
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", () => handleFileSelect(fileInput.files[0]));
+
+    if (dropArea) {
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropArea.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropArea.classList.add("drag-over");
+        });
+      });
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropArea.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropArea.classList.remove("drag-over");
+        });
+      });
+      dropArea.addEventListener("drop", (e) => {
+        const file = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(file);
+      });
+    }
+  }
+
+  // ==========================================
+  // 3. LOGIKA SUBMIT FORM (AJAX & VALIDASI)
+  // ==========================================
   const form = document.querySelector(".form-laporan");
   const kirimBtn = document.querySelector("#kirim-laporan");
-
   const progressBars = document.querySelectorAll(".upload-progress");
   const barFill = document.querySelectorAll(".upload-progress-bar");
 
   if (form && kirimBtn) {
     kirimBtn.addEventListener("click", (e) => {
-      e.preventDefault(); // cegah submit biasa
-
-      // =======================================
-      // VALIDASI FORM WAJIB DIISI
-      // =======================================
+      // Validasi Manual Sebelum Submit
       const nama = document.getElementById("nama_lengkap").value.trim();
-      const email = document.getElementById("email").value.trim();
       const nomor = document.getElementById("nomor").value.trim();
       const alamat = document.getElementById("alamat").value.trim();
-      const rw = document.getElementById("rw").value.trim();
       const pesan = document.getElementById("pesan").value.trim();
       const file = document.getElementById("bukti-foto").files[0];
 
       let missing = [];
-
       if (!nama) missing.push("Nama");
-      if (!nomor) missing.push("Nomor Telepon");
+      if (!nomor) missing.push("Nomor HP");
       if (!alamat) missing.push("Alamat");
-      if (!rw) missing.push("RW");
       if (!pesan) missing.push("Keluhan");
-      if (!file) missing.push("Upload Gambar");
+      if (!file) missing.push("Foto Bukti");
 
       if (missing.length > 0) {
-          document.getElementById("warning-text").innerHTML =
-            "Anda Belum Mengisi:<br><b>" + missing.join(", ") + "</b>";
+        e.preventDefault(); // Stop submit
+        document.getElementById("warning-text").innerHTML = "Anda Belum Mengisi:<br><b>" + missing.join(", ") + "</b>";
+        
+        const overlay = document.getElementById("popup-overlay");
+        const warn = document.getElementById("popup-warning");
+        
+        overlay.style.display = "block";
+        warn.style.display = "block";
+        setTimeout(() => warn.classList.add("show"), 10);
 
-          const overlay = document.getElementById("popup-overlay");
-          const warn = document.getElementById("popup-warning");
-
-          overlay.style.display = "block";
-          warn.style.display = "block";
-
-          setTimeout(() => warn.classList.add("show"), 10);
-
-          document.getElementById("popup-warning-btn").onclick = () => {
-              warn.classList.remove("show");
-              setTimeout(() => {
-                  warn.style.display = "none";
-                  overlay.style.display = "none";
-              }, 200);
-          };
-
-          return; // HENTIKAN SUBMIT FORM
+        document.getElementById("popup-warning-btn").onclick = () => {
+            warn.classList.remove("show");
+            setTimeout(() => {
+                warn.style.display = "none";
+                overlay.style.display = "none";
+            }, 200);
+        };
+        return;
       }
 
-
-      // Tampilkan progress bar
+      // JIKA LOLOS VALIDASI -> LANJUT AJAX
+      e.preventDefault();
+      
+      // Tampilkan Progress Bar
       progressBars.forEach((p) => (p.style.display = "block"));
 
       let formData = new FormData(form);
-
       let xhr = new XMLHttpRequest();
+      
       xhr.open("POST", "proses-lapordesa.php", true);
 
-      // UPDATE PROGRESS BAR
+      // Event Progress
       xhr.upload.onprogress = function (event) {
         if (event.lengthComputable) {
           let percent = Math.round((event.loaded / event.total) * 100);
-
           barFill.forEach((b) => (b.style.width = percent + "%"));
         }
       };
 
-      // JIKA SELESAI
+      // Event Selesai
       xhr.onload = function () {
         if (xhr.status == 200) {
-          // Reset progress bar
           barFill.forEach((b) => (b.style.width = "100%"));
-
-          // === TAMPILKAN POPUP SUKSES ===
+          
+          // TAMPILKAN POPUP SUKSES
           document.getElementById("popup-overlay").style.display = "block";
           const popup = document.getElementById("popup-success");
           popup.style.display = "block";
-
-          // Animasi fade + scale
           setTimeout(() => popup.classList.add("show"), 10);
 
-          // Tombol kembali
           document.getElementById("popup-close-btn").onclick = () => {
-            window.location.href = "/lapordesa/";
+            window.location.reload(); // Refresh halaman
           };
         } else {
-          alert("Upload gagal. Coba lagi.");
+          alert("Gagal mengirim laporan. Server Error: " + xhr.status);
         }
       };
 
       xhr.onerror = function () {
-        alert("Terjadi masalah koneksi.");
+        alert("Terjadi kesalahan koneksi internet.");
       };
 
       xhr.send(formData);
