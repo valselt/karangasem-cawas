@@ -9,3 +9,6 @@ minio_storage/
 karangasem_admin/src/vendor/
 karangasem_admin/src/composer.json
 karangasem_admin/src/composer.lock
+karangasem/src/composer.json
+karangasem/src/composer.lock
+karangasem/src/vendor
