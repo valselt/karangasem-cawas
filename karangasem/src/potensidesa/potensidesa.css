@@ -1,4 +1,4 @@
-@import "../_config.css";
+@import "../_config.css?v=2";
 
 .container-potensi {
   display: flex;

@@ -24,7 +24,7 @@
     <div class="container-potensi">
       <div class="section-1-potensi">
         <video autoplay muted loop playsinline class="potensi-bg-video">
-          <source src="../img/bg-potensidesa.mp4" type="video/mp4">
+          <source src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/bg-potensidesa.mp4" type="video/mp4">
         </video>
         <span class="text-title-potensi text-center">Potensi di Desa Karangasem</span>
       </div>

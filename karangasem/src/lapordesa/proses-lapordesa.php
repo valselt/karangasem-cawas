@@ -2,15 +2,48 @@
 // LOAD KONEKSI
 include '../koneksi.php';
 
+// LOAD AWS SDK
+require 'vendor/autoload.php'; 
+
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
+
 // =========================================
-// CEK METODE
+// 1. KONFIGURASI MINIO (MODE DOMAIN)
+// =========================================
+$minioConfig = [
+    'version'     => 'latest',
+    'region'      => 'us-east-1',
+    
+    // ANDA TETAP PAKAI DOMAIN (Sesuai Permintaan)
+    'endpoint'    => 'https://cdn.ivanaldorino.web.id', 
+    
+    'use_path_style_endpoint' => true,
+    'credentials' => [
+        'key'    => 'admin',       // Pastikan ini benar
+        'secret' => 'aldorino04',  // Pastikan ini benar
+    ],
+    // [PENTING] MATIKAN VERIFIKASI SSL
+    // Ini wajib agar Docker tidak menolak sertifikat HTTPS domain sendiri
+    'http' => [
+        'verify' => false
+    ]
+];
+
+$bucketName = 'karangasem'; 
+$cdnUrlPrefix = "https://cdn.ivanaldorino.web.id/karangasem/websiteutama/lapordesa/";
+$folderMinio  = "websiteutama/lapordesa/"; 
+
+// =========================================
+// CEK METODE REQUEST
 // =========================================
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    die("Akses tidak valid.");
+    http_response_code(405); 
+    die("Metode tidak diizinkan.");
 }
 
 // =========================================
-// AMBIL DATA FORM
+// VALIDASI INPUT
 // =========================================
 $nama       = $_POST['nama_user'] ?? '';
 $email      = $_POST['email_user'] ?? '';
@@ -23,7 +56,7 @@ $koordinat  = $_POST['koordinat_gps'] ?? '';
 $latitude = null;
 $longitude = null;
 
-// Pisahkan koordinat jika ada
+// Pecah Koordinat
 if (!empty($koordinat) && strpos($koordinat, ',') !== false) {
     list($latitude, $longitude) = explode(",", $koordinat);
     $latitude = trim($latitude);
@@ -31,73 +64,82 @@ if (!empty($koordinat) && strpos($koordinat, ',') !== false) {
 }
 
 // =========================================
-// VALIDASI UKURAN FILE (LIMIT 30 MB)
+// VALIDASI FILE
 // =========================================
-if ($_FILES['foto-laporan-user']['error'] !== UPLOAD_ERR_OK) {
-    die("Gagal upload file.");
+if (!isset($_FILES['foto-laporan-user']) || $_FILES['foto-laporan-user']['error'] !== UPLOAD_ERR_OK) {
+    http_response_code(400); 
+    die("File tidak valid atau tidak ada.");
 }
 
 $fileSize = $_FILES['foto-laporan-user']['size'];
-$maxSize  = 30 * 1024 * 1024; // 30 MB
-
-if ($fileSize > $maxSize) {
-    die("Ukuran file terlalu besar. Maksimal 30 MB.");
+if ($fileSize > 30 * 1024 * 1024) {
+    http_response_code(400);
+    die("File terlalu besar (Max 30MB).");
 }
 
 // =========================================
-// PERSIAPAN KONVERSI WEBP
+// PROSES KONVERSI GAMBAR (KE MEMORY)
 // =========================================
-$folderPath = "../img/lapordesa/";
-if (!is_dir($folderPath)) {
-    mkdir($folderPath, 0777, true);
-}
-
-$originalName = $_FILES['foto-laporan-user']['name'];
 $tmpName      = $_FILES['foto-laporan-user']['tmp_name'];
+$originalName = $_FILES['foto-laporan-user']['name'];
 $fileExt      = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
-// Nama file output: (tanggal)(jam)-(nama).webp
+// Generate Nama File Unik
 $dateName = date("Ymd-His");
 $cleanNama = preg_replace("/[^a-zA-Z0-9-_]/", "", strtolower(str_replace(" ", "-", $nama)));
 $finalFileName = $dateName . "-" . $cleanNama . ".webp";
+$objectKey = $folderMinio . $finalFileName;
 
-$finalPath = $folderPath . $finalFileName;
-
-// =========================================
-// KONVERSI MENJADI WEBP
-// =========================================
-
+// Deteksi Tipe File
 switch ($fileExt) {
     case 'jpg':
     case 'jpeg':
         $image = imagecreatefromjpeg($tmpName);
         break;
-
     case 'png':
         $image = imagecreatefrompng($tmpName);
         imagepalettetotruecolor($image);
         imagealphablending($image, true);
         imagesavealpha($image, true);
         break;
-        
     case 'webp':
-        // langsung simpan ulang (tanpa konversi)
         $image = imagecreatefromwebp($tmpName);
         break;
-
     default:
-        die("Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.");
+        http_response_code(415); 
+        die("Format gambar harus JPG, PNG, atau WEBP.");
 }
 
-// Simpan versi WEBP
-if (!imagewebp($image, $finalPath, 80)) {
-    die("Gagal menyimpan file WEBP.");
-}
-
+// Simpan hasil konversi ke variabel (Buffer)
+ob_start(); 
+imagewebp($image, null, 80); 
+$imageContent = ob_get_contents();
+ob_end_clean();
 imagedestroy($image);
 
-// Simpan path untuk database
-$pathDB = "img/lapordesa/" . $finalFileName;
+// =========================================
+// UPLOAD KE MINIO (Via Domain)
+// =========================================
+try {
+    $s3 = new S3Client($minioConfig);
+
+    $s3->putObject([
+        'Bucket'      => $bucketName,
+        'Key'         => $objectKey,
+        'Body'        => $imageContent,
+        'ContentType' => 'image/webp',
+        'ACL'         => 'public-read'
+    ]);
+
+    // URL FINAL
+    $pathDB = $cdnUrlPrefix . $finalFileName;
+
+} catch (AwsException $e) {
+    // Jika gagal koneksi ke domain
+    http_response_code(500);
+    // Kirim pesan error detail agar bisa dicek di Inspect Element
+    die("Gagal Upload S3: " . $e->getMessage());
+}
 
 // =========================================
 // SIMPAN KE DATABASE
@@ -110,21 +152,17 @@ $stmt = $conn->prepare("
 
 $stmt->bind_param(
     "sssssssss",
-    $nama,
-    $email,
-    $nomor,
-    $alamat,
-    $rw,
-    $pesan,
-    $pathDB,
-    $latitude,
-    $longitude
+    $nama, $email, $nomor, $alamat, $rw, $pesan, $pathDB, $latitude, $longitude
 );
 
 if ($stmt->execute()) {
-    echo "<script>alert('Laporan berhasil dikirim!'); window.location.href='index.php';</script>";
+    // SUKSES: Kirim kode 200 (OK)
+    http_response_code(200);
+    echo "Berhasil";
 } else {
-    echo "Gagal menyimpan data: " . $stmt->error;
+    // GAGAL: Kirim kode 500
+    http_response_code(500);
+    echo "Database Error: " . $stmt->error;
 }
 
 $stmt->close();
