@@ -702,7 +702,13 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'potensi';
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= $info['qris'] ? '<span class="badge">Yes</span>' : 'No' ?></td>
+                                <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
+                                    <?php if($info['qris']): ?>
+                                        <span class="badge badge-success">Yes</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-danger">No</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
                                     <?php 
                                         $sosmed = [];

@@ -342,13 +342,25 @@ td {
   border-top: 1px solid var(--card-border);
   color: var(--text-color);
 }
+/* --- STYLE UNTUK BADGE (QRIS) --- */
 .badge {
   padding: 5px 15px;
   border-radius: 20px;
-  background: rgba(52, 152, 219, 0.1);
-  color: var(--accent-color);
   font-weight: 600;
   font-size: 0.85rem;
+  display: inline-block;
+}
+
+/* Warna Biru (Default/Yes) - Sesuai var(--accent-color) */
+.badge-success {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+/* Warna Merah (No) */
+.badge-danger {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
 }
 
 .d-none {
