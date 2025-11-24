@@ -118,6 +118,12 @@ document.addEventListener("DOMContentLoaded", function () {
       else if (status === "error_hak_akses") showPopup("error", "Akses Ditolak", "Anda tidak berhak menanggapi laporan ini saat ini.");
       else if (status === "success_archive") showPopup("success", "Dibersihkan!", "Laporan yang selesai telah diarsipkan.");
       else if (status === "success_selesai") showPopup("success", "Selesai & Diarsipkan", "Laporan telah selesai dan dipindahkan ke menu Arsip.");
+      // Tambahkan di dalam blok if (status === ...)
+      else if (status === "success_add_user") showPopup("success", "Berhasil", "Pengguna baru berhasil ditambahkan.");
+      else if (status === "success_edit_user") showPopup("success", "Berhasil", "Data pengguna berhasil diperbarui.");
+      else if (status === "success_delete_user") showPopup("success", "Terhapus", "Pengguna berhasil dihapus.");
+      else if (status === "error_username_exists") showPopup("error", "Gagal", "Username sudah digunakan orang lain.");
+      else if (status === "error_self_delete") showPopup("error", "Ditolak", "Anda tidak bisa menghapus akun sendiri.");
 
       const url = new URL(window.location);
       url.searchParams.delete("status");

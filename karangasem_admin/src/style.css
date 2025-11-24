@@ -894,3 +894,33 @@ td {
 .timeline-item:not(:first-child).t-status-diproses::before { border-color: #f1c40f; background: #f1c40f; }
 .timeline-item:not(:first-child).t-status-selesai::before { border-color: #2ecc71; background: #2ecc71; }
 .timeline-item:not(:first-child).t-status-ditolak::before { border-color: #e74c3c; background: #e74c3c; }
+
+
+.badge-level {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.level-perangkat_desa {
+  background-color: #e8f6f3;
+  color: #1abc9c;
+  border: 1px solid #1abc9c;
+}
+
+.level-rw {
+  background-color: #fef9e7;
+  color: #f1c40f;
+  border: 1px solid #f1c40f;
+}
+
+.level-user {
+  background-color: #ebf5fb;
+  color: #3498db;
+  border: 1px solid #3498db;
+}
+
+
