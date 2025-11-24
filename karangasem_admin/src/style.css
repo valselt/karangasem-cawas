@@ -345,11 +345,45 @@ td {
 }
 /* --- STYLE UNTUK BADGE (QRIS) --- */
 .badge {
-  padding: 5px 15px;
-  border-radius: 20px;
+  padding: 6px 12px;
+  border-radius: 50px; /* Radius bulat penuh */
   font-weight: 600;
-  font-size: 0.85rem;
-  display: inline-block;
+  font-size: 0.8rem;
+  display: inline-flex; /* Gunakan flex agar Icon dan Teks sejajar */
+  align-items: center;
+  gap: 6px; /* Jarak antara icon dan teks */
+  line-height: 1;
+}
+.badge .material-symbols-rounded {
+  font-size: 16px; /* Ukuran icon dalam badge */
+}
+
+/* 1. Menunggu (Biru) */
+.badge-menunggu {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+/* 2. Diproses (Kuning) */
+.badge-diproses {
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.2);
+}
+
+/* 3. Selesai (Hijau) */
+.badge-selesai {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+/* 4. Ditolak (Merah) */
+.badge-ditolak {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
 /* Warna Biru (Default/Yes) - Sesuai var(--accent-color) */
@@ -400,6 +434,52 @@ td {
 .text-center {
   text-align: center;
 }
+
+/* --- BUTTON ACTION ICON (FOTO & MAP) --- */
+.btn-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;  /* Lebar pasti */
+  height: 38px; /* Tinggi pasti */
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-action-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.btn-action-icon .material-symbols-rounded {
+  font-size: 20px;
+}
+
+/* Warna Foto (Biru) */
+.btn-foto {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-color: rgba(21, 101, 192, 0.1);
+}
+.btn-foto:hover {
+  background-color: #1565c0;
+  color: #ffffff;
+}
+
+/* Warna Map (Hijau) */
+.btn-map {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-color: rgba(46, 125, 50, 0.1);
+}
+.btn-map:hover {
+  background-color: #2e7d32;
+  color: #ffffff;
+}
+
+
 
 /* ... (CSS SEBELUMNYA TETAP SAMA) ... */
 

@@ -114,6 +114,8 @@ document.addEventListener("DOMContentLoaded", function () {
       else if (status === "success_edit") showPopup("success", "Tersimpan!", "Perubahan data berhasil disimpan.");
       else if (status === "success_deactivate") showPopup("success", "Non-Aktif!", "UMKM berhasil dinonaktifkan.");
       else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
+      else if (status === "success_tanggapan") showPopup("success", "Terkirim!", "Tanggapan Anda berhasil disimpan.");
+      else if (status === "error_hak_akses") showPopup("error", "Akses Ditolak", "Anda tidak berhak menanggapi laporan ini saat ini.");
 
       const url = new URL(window.location);
       url.searchParams.delete("status");

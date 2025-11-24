@@ -237,7 +237,52 @@ if ($currentUserLevel == 'perangkat_desa') {
         $conn->query("UPDATE umkm SET diacc = 0 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_deactivate"); exit; 
     }
 }
+
+// 3. SIMPAN TANGGAPAN LAPORAN (Logic Baru)
+if (isset($_POST['kirim_tanggapan'])) {
+    $idLaporan = intval($_POST['id_laporan']);
+    $isiTanggapan = $_POST['isi_tanggapan'];
+    $statusBaru = $_POST['status_laporan']; // diproses, selesai, ditolak
+    
+    // Validasi Security Logic 48 Jam (Double Check di Backend)
+    $cekLaporan = $conn->query("SELECT created_at, rw FROM laporandesa WHERE id = $idLaporan")->fetch_assoc();
+    if ($cekLaporan) {
+        $waktuLapor = strtotime($cekLaporan['created_at']);
+        $selisihJam = (time() - $waktuLapor) / 3600; // Konversi detik ke jam
+        
+        // Ambil RW User yang sedang login
+        $qUser = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
+        $uData = $qUser->fetch_assoc();
+        $userRw = 'rw-' . $uData['rw']; // Normalisasi format "rw-X"
+
+        $bolehJawab = false;
+
+        // ATURAN 1: RW hanya boleh jawab jika < 48 jam DAN RW-nya sesuai
+        if ($currentUserLevel == 'rw' && $selisihJam <= 48 && $userRw == $cekLaporan['rw']) {
+            $bolehJawab = true;
+        }
+        // ATURAN 2: Perangkat Desa hanya boleh jawab jika > 48 jam
+        else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) {
+            $bolehJawab = true;
+        }
+
+        if ($bolehJawab) {
+            $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=? WHERE id=?");
+            $stmt->bind_param("ssii", $isiTanggapan, $statusBaru, $currentUserId, $idLaporan);
+            if ($stmt->execute()) {
+                header("Location: ?page=lapor&status=success_tanggapan");
+                exit;
+            }
+        } else {
+            // Jika mencoba bypass via inspect element
+            header("Location: ?page=lapor&status=error_hak_akses");
+            exit;
+        }
+    }
+}
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="id">
@@ -682,37 +727,212 @@ if ($currentUserLevel == 'perangkat_desa') {
                     </table>
                 </div>
             </div>
-
+                            
         <?php elseif ($page == 'lapor' && ($currentUserLevel == 'rw' || $currentUserLevel == 'perangkat_desa')): ?>
             <h1>Laporan Warga</h1>
+            
+            <div id="modal-tanggapan" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+                <div class="card" style="width:500px; max-width:90%; animation: slideDown 0.3s ease;">
+                    <div class="card-header" style="display:flex; justify-content:space-between;">
+                        <h3>Beri Tanggapan</h3>
+                        <button onclick="document.getElementById('modal-tanggapan').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="id_laporan" id="modal-id-laporan">
+                        <div style="margin-bottom:15px;">
+                            <label>Isi Laporan Warga:</label>
+                            <div id="modal-text-laporan" style="background:#f0f0f0; padding:10px; border-radius:8px; font-style:italic; color:#555;"></div>
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <label>Status Laporan</label>
+                            <select name="status_laporan" class="form-control">
+                                <option value="diproses">Diproses</option>
+                                <option value="selesai">Selesai</option>
+                                <option value="ditolak">Ditolak</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label>Tanggapan Anda</label>
+                            <textarea name="isi_tanggapan" class="form-control" rows="4" required placeholder="Tulis jawaban untuk warga..."></textarea>
+                        </div>
+                        <button type="submit" name="kirim_tanggapan" class="btn btn-primary" style="width:100%;">Kirim Tanggapan</button>
+                    </form>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="table-container">
                     <table style="font-size: 0.9rem;">
                         <thead>
-                            <tr><th style="min-width:100px;">Tanggal</th><th style="min-width:120px;">Pelapor</th><th style="min-width:150px;">Kontak</th><th style="min-width:150px;">Alamat</th><th style="min-width:200px;">Pesan</th><th>Lokasi</th><th>Foto</th></tr>
+                            <tr>
+                                <th style="min-width:100px;">Tanggal</th>
+                                <th style="min-width:120px;">Pelapor</th>
+                                <th style="min-width:200px;">Pesan & Lokasi</th>
+                                <th style="min-width:100px;">Status</th>
+                                <th style="min-width:200px;">Tanggapan</th>
+                                <th style="min-width:100px;">Aksi</th>
+                            </tr>
                         </thead>
                         <tbody>
                         <?php 
-                        $resLapor = $conn->query("SELECT * FROM laporandesa ORDER BY created_at DESC"); 
+                        // 1. FETCH DATA BERDASARKAN LEVEL
+                        $sqlLapor = "SELECT l.*, u.nama_lengkap as penanggap_nama 
+                                    FROM laporandesa l 
+                                    LEFT JOIN users u ON l.id_penanggap = u.id ";
+                        
+                        // Filter Khusus RW
+                        if ($currentUserLevel == 'rw') {
+                            // Ambil RW User saat ini dari DB untuk memastikan akurasi
+                            $qCekRw = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
+                            $rwData = $qCekRw->fetch_assoc();
+                            $rwUserStr = 'rw-' . $rwData['rw']; // Convert '7' to 'rw-7' sesuai format tabel laporandesa
+                            
+                            $sqlLapor .= " WHERE l.rw = '$rwUserStr' ";
+                        }
+
+                        $sqlLapor .= " ORDER BY l.created_at DESC";
+                        $resLapor = $conn->query($sqlLapor);
+                        
                         while($row=$resLapor->fetch_assoc()): 
+                            // LOGIKA WAKTU (48 JAM)
+                            $waktuLapor = strtotime($row['created_at']);
+                            $selisihJam = (time() - $waktuLapor) / 3600;
+                            $sudahDijawab = !empty($row['tanggapan']);
+
+                            // Hak Akses Tombol Jawab
+                            $showButtonJawab = false;
+                            
+                            if (!$sudahDijawab) {
+                                if ($currentUserLevel == 'rw') {
+                                    // RW bisa jawab jika kurang dari 48 jam
+                                    if ($selisihJam <= 48) $showButtonJawab = true;
+                                } 
+                                elseif ($currentUserLevel == 'perangkat_desa') {
+                                    // Perangkat desa bisa jawab jika sudah lewat 48 jam
+                                    if ($selisihJam > 48) $showButtonJawab = true;
+                                }
+                            }
                         ?>
                         <tr>
-                            <td><?= date('d M Y', strtotime($row['created_at'])) ?><br><small><?= date('H:i', strtotime($row['created_at'])) ?></small></td>
-                            <td><strong><?= htmlspecialchars($row['nama']) ?></strong></td>
                             <td>
-                                <?php if($row['email']): ?><div style="margin-bottom:4px;"><span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">mail</span> <?= htmlspecialchars($row['email']) ?></div><?php endif; ?>
-                                <div><span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">call</span> <?= htmlspecialchars($row['nomor_telepon']) ?></div>
+                                <?= date('d M Y', $waktuLapor) ?><br>
+                                <small class="text-muted"><?= date('H:i', $waktuLapor) ?></small>
+                                
+                                <?php if(!$sudahDijawab && $selisihJam <= 48): ?>
+                                    <br><span class="badge badge-warning" style="font-size:0.7rem; margin-top:5px;">Sisa: <?= round(48 - $selisihJam) ?> Jam</span>
+                                <?php elseif(!$sudahDijawab && $selisihJam > 48): ?>
+                                    <br><span class="badge badge-danger" style="font-size:0.7rem; margin-top:5px;">Expired (Alih ke Desa)</span>
+                                <?php endif; ?>
                             </td>
-                            <td><?= htmlspecialchars($row['alamat']) ?><br><span class="badge" style="margin-top:5px; display:inline-block;"><?= htmlspecialchars($row['rw']) ?></span></td>
-                            <td><div style="max-width: 250px; white-space: normal;"><?= htmlspecialchars($row['pesan_keluhan']) ?></div></td>
-                            <td class="text-center"><?php if(!empty($row['latitude']) && !empty($row['longitude'])): ?><a href="https://www.google.com/maps?daddr=<?= $row['latitude'] ?>,<?= $row['longitude'] ?>" target="_blank" class="btn btn-success btn-icon-only" title="Lihat Lokasi"><span class="material-symbols-rounded">assistant_direction</span></a><?php else: ?><span style="color:#ccc;">-</span><?php endif; ?></td>
-                            <td class="text-center"><?php if(!empty($row['path_keluhan_foto'])): ?><a href="<?= htmlspecialchars($row['path_keluhan_foto']) ?>" target="_blank" class="btn btn-primary btn-icon-only"><span class="material-symbols-rounded">image</span></a><?php else: ?><span style="color:#ccc;">-</span><?php endif; ?></td>
+                            <td>
+                                <strong><?= htmlspecialchars($row['nama']) ?></strong><br>
+                                <span class="badge"><?= htmlspecialchars($row['rw']) ?></span><br>
+                                <small><?= htmlspecialchars($row['nomor_telepon']) ?></small>
+                            </td>
+                            <td>
+                                <div style="margin-bottom: 8px;">
+                                    <?= htmlspecialchars($row['pesan_keluhan']) ?>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <?php if($row['path_keluhan_foto']): ?>
+                                        <a href="<?= $row['path_keluhan_foto'] ?>" target="_blank" class="btn-action-icon btn-foto" title="Lihat Foto Bukti">
+                                            <span class="material-symbols-rounded">photo</span>
+                                        </a>
+                                    <?php endif; ?>
+
+                                    <?php if($row['latitude']): ?>
+                                        <a href="https://maps.google.com/?q=<?= $row['latitude'] ?>,<?= $row['longitude'] ?>" target="_blank" class="btn-action-icon btn-map" title="Lihat Lokasi">
+                                            <span class="material-symbols-rounded">map</span>
+                                        </a>
+                                    <?php endif; ?>
+
+                                </div>
+                            </td>
+                            <td>
+                                <?php 
+                                    // DEFINISI KONFIGURASI STATUS (ICON & CLASS)
+                                    $statusConfig = [
+                                        'menunggu' => [
+                                            'class' => 'badge-menunggu', 
+                                            'icon'  => 'hand_gesture', 
+                                            'label' => 'Menunggu'
+                                        ],
+                                        'diproses' => [
+                                            'class' => 'badge-diproses', 
+                                            'icon'  => 'autorenew', 
+                                            'label' => 'Diproses'
+                                        ],
+                                        'selesai'  => [
+                                            'class' => 'badge-selesai',  
+                                            'icon'  => 'done_all',   
+                                            'label' => 'Selesai'
+                                        ],
+                                        'ditolak'  => [
+                                            'class' => 'badge-ditolak',  
+                                            'icon'  => 'block',      
+                                            'label' => 'Ditolak'
+                                        ]
+                                    ];
+
+                                    // Ambil status dari database
+                                    $st = $row['status'];
+                                    
+                                    // Ambil config, fallback ke 'menunggu' jika status tidak dikenal
+                                    $cfg = isset($statusConfig[$st]) ? $statusConfig[$st] : $statusConfig['menunggu'];
+                                ?>
+                                
+                                <span class="badge <?= $cfg['class'] ?>">
+                                    <span class="material-symbols-rounded"><?= $cfg['icon'] ?></span>
+                                    <?= $cfg['label'] ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if($sudahDijawab): ?>
+                                    <?= htmlspecialchars($row['tanggapan']) ?>
+                                    <div style="margin-top:5px; font-size:0.75rem; color:var(--text-muted);">
+                                        Oleh: <strong><?= $row['penanggap_nama'] ?? 'Admin' ?></strong>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-muted">- Belum ditanggapi -</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if($showButtonJawab): ?>
+                                    <button onclick="openModalJawab(<?= $row['id'] ?>, '<?= addslashes(htmlspecialchars($row['pesan_keluhan'])) ?>')" class="btn btn-primary" style="padding:5px 15px; font-size:0.8rem;">
+                                        <span class="material-symbols-rounded" style="font-size:16px;">reply</span> Jawab
+                                    </button>
+                                <?php else: ?>
+                                    <?php if(!$sudahDijawab): ?>
+                                        <span style="font-size:0.8rem; color:#ccc;">
+                                            <?= ($currentUserLevel == 'rw') ? 'Waktu Habis' : 'Menunggu RW' ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="material-symbols-rounded" style="color:#2ecc71;">check_circle</span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                         <?php endwhile; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <script>
+            function openModalJawab(id, pesan) {
+                document.getElementById('modal-tanggapan').style.display = 'flex';
+                document.getElementById('modal-id-laporan').value = id;
+                document.getElementById('modal-text-laporan').innerText = pesan;
+            }
+            // Tutup modal jika klik di luar
+            window.onclick = function(event) {
+                let modal = document.getElementById('modal-tanggapan');
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+            </script>
+
         <?php endif; ?>
     </div>
 
