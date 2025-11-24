@@ -201,6 +201,25 @@
         <button id="popup-warning-btn">Kembali</button>
     </div>
 
+    <div id="popup-ticket-input" class="popup-input-container">
+        <h3 class="popup-title">Lacak Laporan Desa</h3>
+        <p style="text-align:center; margin-bottom:1rem; color:#666;">Masukkan No. Tiket Anda (contoh: #A1B2C3)</p>
+        
+        <input type="text" id="input-ticket-field" class="input-ticket-box" placeholder="#XXXXXX">
+        <button id="btn-submit-ticket" class="btn-check-ticket">CEK STATUS</button>
+        <button id="btn-close-ticket" style="width:100%; margin-top:0.5rem; background:none; border:none; cursor:pointer; color:#999;">Batal</button>
+    </div>
+
+    <div id="popup-ticket-result" class="popup-input-container" style="max-width: 500px;">
+        <h3 class="popup-title">Riwayat Laporan</h3>
+        
+        <div id="timeline-content" class="timeline-scroll-area">
+             <p style="text-align:center;">Memuat data...</p>
+        </div>
+
+        <button id="btn-close-result" class="btn-check-ticket" style="margin-top:1rem;">Tutup</button>
+    </div>
+
 
   </body>
 </html>

@@ -287,4 +287,88 @@ document.addEventListener("DOMContentLoaded", () => {
       xhr.send(formData);
     });
   }
+
+  // ==========================================
+  // 4. LOGIKA CEK TIKET (POPUP & AJAX)
+  // ==========================================
+  const btnCekLaporan = document.querySelector(".other-button"); // Tombol Cek Laporan
+  const popupInput = document.getElementById("popup-ticket-input");
+  const popupResult = document.getElementById("popup-ticket-result");
+  const overlay = document.getElementById("popup-overlay");
+  
+  const inputField = document.getElementById("input-ticket-field");
+  const btnSubmitTicket = document.getElementById("btn-submit-ticket");
+  const btnCloseTicket = document.getElementById("btn-close-ticket");
+  const btnCloseResult = document.getElementById("btn-close-result");
+  const timelineContent = document.getElementById("timeline-content");
+
+  // 1. Buka Popup Input saat klik "Cek Laporan Desa"
+  if (btnCekLaporan) {
+      btnCekLaporan.addEventListener("click", (e) => {
+          e.preventDefault(); // Mencegah link pindah halaman
+          overlay.style.display = "block";
+          popupInput.classList.add("show");
+          
+          // Auto fill jika ada di cache
+          const savedTicket = localStorage.getItem("lapor_desa_last_ticket");
+          if(savedTicket) inputField.value = savedTicket;
+          
+          inputField.focus();
+      });
+  }
+
+  // 2. Fungsi Kirim Request
+  function checkTicketStatus() {
+      const ticketVal = inputField.value.trim();
+      if (!ticketVal) {
+          alert("Silakan masukkan nomor tiket!");
+          return;
+      }
+
+      // Loading UI
+      btnSubmitTicket.textContent = "Mencari...";
+      btnSubmitTicket.disabled = true;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "cek-laporan.php", true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      
+      xhr.onload = function() {
+          btnSubmitTicket.textContent = "CEK STATUS";
+          btnSubmitTicket.disabled = false;
+
+          if (xhr.status === 200) {
+              // Sukses -> Tampilkan Timeline
+              popupInput.classList.remove("show"); // Tutup input
+              popupResult.classList.add("show");   // Buka result
+              timelineContent.innerHTML = xhr.responseText; // Isi HTML
+          } else {
+              // Gagal (404 dll)
+              alert("Tiket tidak ditemukan atau terjadi kesalahan.");
+          }
+      };
+
+      xhr.send("ticket=" + encodeURIComponent(ticketVal));
+  }
+
+  // 3. Event Listener Tombol Submit
+  if (btnSubmitTicket) {
+      btnSubmitTicket.addEventListener("click", checkTicketStatus);
+  }
+
+  // 4. Tutup Popup
+  function closeAllPopups() {
+      overlay.style.display = "none";
+      popupInput.classList.remove("show");
+      popupResult.classList.remove("show");
+  }
+
+  if (btnCloseTicket) btnCloseTicket.addEventListener("click", closeAllPopups);
+  if (btnCloseResult) btnCloseResult.addEventListener("click", closeAllPopups);
+  if (overlay) overlay.addEventListener("click", () => {
+      // Cek apakah popup input atau result sedang terbuka
+      if (popupInput.classList.contains("show") || popupResult.classList.contains("show")) {
+          closeAllPopups();
+      }
+  });
 });
