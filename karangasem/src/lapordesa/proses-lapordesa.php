@@ -139,13 +139,56 @@ try {
 if (uploadToMinio($_FILES['foto-laporan-user'], $finalFileName, $s3, $bucketName)) {
     
     // Simpan ke DB
+    // ===============================================
+    // GENERATE TICKET UNIK (# + 15 Random Char)
+    // ===============================================
+    $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $ticket = '';
+    $isDuplicate = true;
+
+    // Loop ini akan terus berjalan sampai menemukan tiket yang BELUM pernah dipakai
+    do {
+        // 1. Generate Random 10 Karakter
+        $randomString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $randomString .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        $candidateTicket = '#' . $randomString;
+
+        // 2. Cek ke Database (Prepare Statement agar aman)
+        // Kita hanya perlu mengambil kolom 'id' untuk pengecekan ringan
+        $checkStmt = $conn->prepare("SELECT id FROM laporandesa WHERE ticket = ? LIMIT 1");
+        $checkStmt->bind_param("s", $candidateTicket);
+        $checkStmt->execute();
+        $checkStmt->store_result();
+
+        // 3. Evaluasi
+        if ($checkStmt->num_rows == 0) {
+            // Jika 0, berarti tiket ini AMAN (belum ada di DB)
+            $ticket = $candidateTicket;
+            $isDuplicate = false; // Keluar dari loop
+        }
+        // Jika num_rows > 0, loop akan berputar lagi untuk generate kode baru
+        
+        $checkStmt->close();
+
+    } while ($isDuplicate);
+
+    // ===============================================
+    // SIMPAN KE DATABASE
+    // ===============================================
     $pathDB = $cdnUrlPrefix . $finalFileName;
-    $stmt = $conn->prepare("INSERT INTO laporandesa (nama, email, nomor_telepon, alamat, rw, pesan_keluhan, path_keluhan_foto, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssssss", $nama, $email, $nomor, $alamat, $rw, $pesan, $pathDB, $latitude, $longitude);
+    
+    // Perhatikan penambahan 'ticket' di query dan 's' ekstra di bind_param
+    $stmt = $conn->prepare("INSERT INTO laporandesa (ticket, nama, email, nomor_telepon, alamat, rw, pesan_keluhan, path_keluhan_foto, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    // "s" sekarang ada 10 buah (karena ada 10 variabel)
+    $stmt->bind_param("ssssssssss", $ticket, $nama, $email, $nomor, $alamat, $rw, $pesan, $pathDB, $latitude, $longitude);
 
     if ($stmt->execute()) {
-        http_response_code(200); // Kode sukses untuk Javascript
-        echo "Berhasil";
+        http_response_code(200); 
+        // Mengembalikan nomor ticket ke Javascript (opsional, jika ingin ditampilkan di popup)
+        echo $ticket; 
     } else {
         http_response_code(500);
         echo "Database Error: " . $stmt->error;

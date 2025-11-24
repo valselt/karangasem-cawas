@@ -146,12 +146,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const pesan = document.getElementById("pesan").value.trim();
       const file = document.getElementById("bukti-foto").files[0];
 
+      // --- TAMBAHAN BARU DI SINI ---
+      const gps = document.getElementById("koordinat_gps").value.trim(); 
+      // -----------------------------
+
       let missing = [];
       if (!nama) missing.push("Nama");
       if (!nomor) missing.push("Nomor HP");
       if (!alamat) missing.push("Alamat");
       if (!pesan) missing.push("Keluhan");
       if (!file) missing.push("Foto Bukti");
+      // --- VALIDASI GPS ---
+      if (!gps) missing.push("Titik Lokasi (GPS)"); 
+      // --------------------
 
       if (missing.length > 0) {
         e.preventDefault(); // Stop submit

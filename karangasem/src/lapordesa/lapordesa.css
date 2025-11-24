@@ -528,6 +528,30 @@ button[type="submit"]:hover {
   background-color: #b3251f;
 }
 
+/* Pastikan tombol memiliki posisi relative agar bintang bisa diposisikan */
+.gps-btn {
+  position: relative; 
+}
+
+/* Membuat Bintang Merah di Pojok Tombol */
+.gps-btn::after {
+  content: "*";
+  color: #d93025; /* Warna merah */
+  font-weight: 700;
+  font-size: 1.2rem;
+  
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  
+  pointer-events: none; /* Agar klik tetap tembus ke tombol */
+}
+
+/* Opsi Tambahan: Hilangkan bintang jika GPS sudah ditemukan (tombol jadi hijau) */
+.gps-btn.active::after {
+  display: none;
+}
+
 
 
 
