@@ -116,6 +116,8 @@ document.addEventListener("DOMContentLoaded", function () {
       else if (status === "error") showPopup("error", "Gagal!", "Terjadi kesalahan saat memproses data.");
       else if (status === "success_tanggapan") showPopup("success", "Terkirim!", "Tanggapan Anda berhasil disimpan.");
       else if (status === "error_hak_akses") showPopup("error", "Akses Ditolak", "Anda tidak berhak menanggapi laporan ini saat ini.");
+      else if (status === "success_archive") showPopup("success", "Dibersihkan!", "Laporan yang selesai telah diarsipkan.");
+      else if (status === "success_selesai") showPopup("success", "Selesai & Diarsipkan", "Laporan telah selesai dan dipindahkan ke menu Arsip.");
 
       const url = new URL(window.location);
       url.searchParams.delete("status");
