@@ -2,6 +2,52 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("Javascript Lapor Desa Dimuat...");
 
   // ==========================================
+  // 0. CEK TIKET TERAKHIR DI CACHE (BARU)
+  // ==========================================
+  const ticketDisplay = document.getElementById("last-ticket-display");
+  const ticketText = document.getElementById("ticket-number-text");
+  
+  // Ambil data dari LocalStorage browser
+  const savedTicket = localStorage.getItem("lapor_desa_last_ticket");
+
+  if (savedTicket && ticketDisplay && ticketText) {
+      ticketText.textContent = savedTicket;
+      ticketDisplay.style.display = "flex"; // Munculkan box
+  }
+
+// ==========================================
+  // 0.5 LOGIKA COPY TIKET (BARU)
+  // ==========================================
+  const copyBtn = document.getElementById("copy-ticket-btn");
+  
+  if (copyBtn && ticketText) {
+    copyBtn.addEventListener("click", () => {
+      const textToCopy = ticketText.textContent;
+      
+      // API Clipboard Modern
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        
+        // 1. Ubah Icon jadi Centang
+        const iconSpan = copyBtn.querySelector("span");
+        const originalIcon = iconSpan.textContent;
+        
+        iconSpan.textContent = "check"; // Icon centang
+        iconSpan.style.color = "#2e7d32"; // Warna hijau
+        
+        // 2. Kembalikan setelah 2 detik
+        setTimeout(() => {
+          iconSpan.textContent = "content_copy";
+          iconSpan.style.color = ""; // Reset warna
+        }, 2000);
+        
+      }).catch(err => {
+        console.error("Gagal menyalin: ", err);
+        alert("Gagal menyalin tiket. Silakan salin manual.");
+      });
+    });
+  }
+
+  // ==========================================
   // 1. LOGIKA TOMBOL GPS (DIPERBAIKI)
   // ==========================================
   const gpsBtn = document.querySelector("#ambil-gps");
@@ -201,12 +247,27 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       // Event Selesai
+      // Event Selesai
       xhr.onload = function () {
         if (xhr.status == 200) {
           barFill.forEach((b) => (b.style.width = "100%"));
+
+          // /// LOGIKA BARU: SIMPAN TIKET KE CACHE ///
+          // Respons PHP berisi nomor tiket (misal: #A1B2C3D4E5)
+          const tiketBaru = xhr.responseText.trim();
+          
+          if(tiketBaru.startsWith("#")) {
+             localStorage.setItem("lapor_desa_last_ticket", tiketBaru);
+          }
+          // //////////////////////////////////////////
           
           // TAMPILKAN POPUP SUKSES
           document.getElementById("popup-overlay").style.display = "block";
+          
+          // Opsional: Tampilkan tiket di Popup Sukses juga
+          const popupTitle = document.querySelector("#popup-success h2");
+          popupTitle.innerHTML = "Laporan Terkirim!<br><span style='font-size:0.8em; color:#666;'>Tiket: " + tiketBaru + "</span>";
+
           const popup = document.getElementById("popup-success");
           popup.style.display = "block";
           setTimeout(() => popup.classList.add("show"), 10);

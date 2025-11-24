@@ -29,8 +29,25 @@
             <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/lapordesa.png" alt="logo" />
         </div>
       <div class="section-1-lapor">
-        <span class="text-title">Sistem Lapor Desa</span>
+        <div class="section-1-1-lapor">
+          <span class="text-title">Sistem Lapor Desa</span>
+          <a class="other-button">
+            <span class="material-symbols-rounded">content_paste_search</span>
+            <p>Cek Laporan Desa</p>
+          </a>
+
+        </div>
+        
         <p>oleh GIAT 13 UNNES</p>
+
+        <div id="last-ticket-display" class="last-ticket-box">
+            <span>Laporan Terakhir:</span>
+            <strong id="ticket-number-text">#-------</strong>
+            
+            <button type="button" class="btn-copy-ticket" id="copy-ticket-btn" title="Salin Tiket">
+                <span class="material-symbols-rounded">content_copy</span>
+            </button>
+        </div>
       </div>
       <div class="section-2-lapor">
         <form class="form-laporan" action="proses-lapordesa.php" method="POST" enctype="multipart/form-data">

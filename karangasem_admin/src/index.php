@@ -78,20 +78,15 @@ function uploadImageToMinio($fileArray, $targetKey, $s3Client, $bucket) {
 }
 
 // --- LOGIC HALAMAN ---
-// Tentukan halaman default berdasarkan level
 $defaultPage = 'potensi';
 if ($currentUserLevel == 'rw') $defaultPage = 'lapor';
 if ($currentUserLevel == 'user') $defaultPage = 'umkm';
 
 $page = isset($_GET['page']) ? $_GET['page'] : $defaultPage;
 
-// CEK AKSES HALAMAN (Security Layer)
-if ($currentUserLevel == 'rw' && $page != 'lapor') {
-    $page = 'lapor'; // Paksa ke lapor
-}
-if ($currentUserLevel == 'user' && $page != 'umkm') {
-    $page = 'umkm'; // Paksa ke umkm
-}
+// Security Layer Halaman
+if ($currentUserLevel == 'rw' && $page != 'lapor') $page = 'lapor';
+if ($currentUserLevel == 'user' && $page != 'umkm') $page = 'umkm';
 
 // --- VARIABEL EDIT ---
 $editMode = false;
@@ -108,7 +103,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit_potensi' && isset($_GET['
 
 // --- LOGIC POST ---
 
-// 1. SIMPAN POTENSI (Hanya Perangkat Desa)
+// 1. SIMPAN POTENSI
 if (isset($_POST['simpan_potensi']) && $currentUserLevel == 'perangkat_desa') { 
     $nama = $_POST['nama'];
     $jenis = $_POST['jenis'];
@@ -147,7 +142,7 @@ if (isset($_POST['simpan_potensi']) && $currentUserLevel == 'perangkat_desa') {
     }
 }
 
-// 2. SIMPAN UMKM (User & Perangkat Desa)
+// 2. SIMPAN UMKM
 if (isset($_POST['simpan_umkm'])) {
     $namaUsaha = $_POST['nama_usaha'];
     $pemilik = $_POST['nama_pemilik'];
@@ -182,7 +177,7 @@ if (isset($_POST['simpan_umkm'])) {
     
     $stmtUmkm->bind_param("issssssddsiiiisisis", 
         $userIdToInsert, $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
-        $statusDiacc, // Gunakan variabel ini
+        $statusDiacc,
         $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
     );
 
@@ -238,51 +233,48 @@ if ($currentUserLevel == 'perangkat_desa') {
     }
 }
 
-// 3. SIMPAN TANGGAPAN LAPORAN (Logika Archive Diperbaiki & Disatukan Disini)
+// 3. SIMPAN TANGGAPAN LAPORAN (LOGIKA UTAMA YANG BENAR)
 if (isset($_POST['kirim_tanggapan'])) {
     $idLaporan = intval($_POST['id_laporan']);
     $isiTanggapan = $_POST['isi_tanggapan'];
-    $statusBaru = $_POST['status_laporan']; // diproses, selesai, ditolak
+    $statusBaru = $_POST['status_laporan'];
     
-    // LOGIKA OTOMATIS: Jika Selesai -> Masuk Arsip (1), Jika Tidak -> Aktif (0)
+    // OTOMATIS ARSIP
     $isArchived = ($statusBaru == 'selesai') ? 1 : 0;
 
-    // Validasi Security Logic 48 Jam (Double Check di Backend)
+    // Validasi Security 48 Jam
     $cekLaporan = $conn->query("SELECT created_at, rw FROM laporandesa WHERE id = $idLaporan")->fetch_assoc();
     if ($cekLaporan) {
         $waktuLapor = strtotime($cekLaporan['created_at']);
-        $selisihJam = (time() - $waktuLapor) / 3600; // Konversi detik ke jam
+        $selisihJam = (time() - $waktuLapor) / 3600;
         
-        // Ambil RW User yang sedang login
         $qUser = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
         $uData = $qUser->fetch_assoc();
-        $userRw = 'rw-' . $uData['rw']; // Normalisasi format "rw-X"
+        $userRw = 'rw-' . $uData['rw'];
 
         $bolehJawab = false;
-
-        // ATURAN 1: RW hanya boleh jawab jika < 48 jam DAN RW-nya sesuai
         if ($currentUserLevel == 'rw' && $selisihJam <= 48 && $userRw == $cekLaporan['rw']) {
             $bolehJawab = true;
-        }
-        // ATURAN 2: Perangkat Desa hanya boleh jawab jika > 48 jam
-        else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) {
+        } else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) {
             $bolehJawab = true;
         }
 
         if ($bolehJawab) {
-            // UPDATE DATA TERMASUK KOLOM IS_ARCHIVED
-            // Perhatikan parameter bind: ssiii (string, string, int, int, int)
-            $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=?, is_archived=? WHERE id=?");
-            $stmt->bind_param("ssiii", $isiTanggapan, $statusBaru, $currentUserId, $isArchived, $idLaporan);
+            // A. INSERT KE TABEL RIWAYAT DULU
+            $stmtHist = $conn->prepare("INSERT INTO riwayat_tanggapan (id_laporan, id_user, isi_tanggapan, status_laporan) VALUES (?, ?, ?, ?)");
+            $stmtHist->bind_param("iiss", $idLaporan, $currentUserId, $isiTanggapan, $statusBaru);
             
-            if ($stmt->execute()) {
-                // Redirect sesuai status (agar user sadar data pindah ke arsip)
+            if ($stmtHist->execute()) {
+                // B. UPDATE TABEL UTAMA
+                $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=?, is_archived=? WHERE id=?");
+                $stmt->bind_param("ssiii", $isiTanggapan, $statusBaru, $currentUserId, $isArchived, $idLaporan);
+                $stmt->execute();
+
                 $msg = ($statusBaru == 'selesai') ? 'success_selesai' : 'success_tanggapan';
                 header("Location: ?page=lapor&status=" . $msg);
                 exit;
             }
         } else {
-            // Jika mencoba bypass via inspect element
             header("Location: ?page=lapor&status=error_hak_akses");
             exit;
         }
@@ -733,69 +725,23 @@ if (isset($_POST['kirim_tanggapan'])) {
                     </table>
                 </div>
             </div>
-             <!-- Lapor Warga  -->
+                            
         <?php elseif ($page == 'lapor' && ($currentUserLevel == 'rw' || $currentUserLevel == 'perangkat_desa')): ?>
     
             <?php
-            // --- 1. LOGIC POST BARU (SIMPAN RIWAYAT + UPDATE UTAMA) ---
-            if (isset($_POST['kirim_tanggapan'])) {
-                $idLaporan = intval($_POST['id_laporan']);
-                $isiTanggapan = $_POST['isi_tanggapan'];
-                $statusBaru = $_POST['status_laporan'];
-                
-                // OTOMATIS ARSIP JIKA SELESAI
-                $isArchived = ($statusBaru == 'selesai') ? 1 : 0;
-
-                // Validasi 48 Jam
-                $cekLaporan = $conn->query("SELECT created_at, rw FROM laporandesa WHERE id = $idLaporan")->fetch_assoc();
-                if ($cekLaporan) {
-                    $waktuLapor = strtotime($cekLaporan['created_at']);
-                    $selisihJam = (time() - $waktuLapor) / 3600;
-                    
-                    $qUser = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
-                    $uData = $qUser->fetch_assoc();
-                    $userRw = 'rw-' . $uData['rw'];
-
-                    $bolehJawab = false;
-                    if ($currentUserLevel == 'rw' && $selisihJam <= 48 && $userRw == $cekLaporan['rw']) {
-                        $bolehJawab = true;
-                    } else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) {
-                        $bolehJawab = true;
-                    }
-
-                    if ($bolehJawab) {
-                        // A. INSERT KE TABEL RIWAYAT (History)
-                        $stmtHist = $conn->prepare("INSERT INTO riwayat_tanggapan (id_laporan, id_user, isi_tanggapan, status_laporan) VALUES (?, ?, ?, ?)");
-                        $stmtHist->bind_param("iiss", $idLaporan, $currentUserId, $isiTanggapan, $statusBaru);
-                        
-                        if ($stmtHist->execute()) {
-                            // B. UPDATE TABEL UTAMA (Data Terbaru)
-                            $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=?, is_archived=? WHERE id=?");
-                            $stmt->bind_param("ssiii", $isiTanggapan, $statusBaru, $currentUserId, $isArchived, $idLaporan);
-                            $stmt->execute();
-
-                            $msg = ($statusBaru == 'selesai') ? 'success_selesai' : 'success_tanggapan';
-                            header("Location: ?page=lapor&status=" . $msg);
-                            exit;
-                        }
-                    } else {
-                        header("Location: ?page=lapor&status=error_hak_akses");
-                        exit;
-                    }
-                }
-            }
-
-            // --- 2. VIEW MODE ---
-            $viewMode = isset($_GET['view']) ? $_GET['view'] : 'aktif'; 
+            // --- 2. LOGIC VIEW MODE (AKTIF vs ARSIP) ---
+            $viewMode = isset($_GET['view']) ? $_GET['view'] : 'aktif'; // Default: aktif
             $archiveValue = ($viewMode == 'arsip') ? 1 : 0;
             ?>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="display: flex; align-items: center; gap: 10px;">
                     <?php if($viewMode == 'arsip'): ?>
-                        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--text-muted);">archive</span> Arsip Laporan Selesai
+                        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--text-muted);">archive</span> 
+                        Arsip Laporan Selesai
                     <?php else: ?>
-                        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--accent-color);">campaign</span> Laporan Warga Aktif
+                        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--accent-color);">campaign</span> 
+                        Laporan Warga Aktif
                     <?php endif; ?>
                 </h1>
                 
@@ -875,9 +821,9 @@ if (isset($_POST['kirim_tanggapan'])) {
                         <?php 
                         // QUERY DATA
                         $sqlLapor = "SELECT l.*, u.nama_lengkap as penanggap_nama 
-                                    FROM laporandesa l 
-                                    LEFT JOIN users u ON l.id_penanggap = u.id 
-                                    WHERE l.is_archived = $archiveValue ";
+                                     FROM laporandesa l 
+                                     LEFT JOIN users u ON l.id_penanggap = u.id 
+                                     WHERE l.is_archived = $archiveValue ";
                         
                         if ($currentUserLevel == 'rw') {
                             $qCekRw = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
@@ -898,10 +844,10 @@ if (isset($_POST['kirim_tanggapan'])) {
                                 // FETCH RIWAYAT UNTUK ROW INI (Sebagai JSON Data Attribute)
                                 $idLap = $row['id'];
                                 $qHist = $conn->query("SELECT r.*, u.nama_lengkap 
-                                                    FROM riwayat_tanggapan r 
-                                                    JOIN users u ON r.id_user = u.id 
-                                                    WHERE r.id_laporan = $idLap 
-                                                    ORDER BY r.created_at DESC");
+                                                       FROM riwayat_tanggapan r 
+                                                       JOIN users u ON r.id_user = u.id 
+                                                       WHERE r.id_laporan = $idLap 
+                                                       ORDER BY r.created_at DESC");
                                 $historyArray = [];
                                 while($h = $qHist->fetch_assoc()) {
                                     $historyArray[] = [
