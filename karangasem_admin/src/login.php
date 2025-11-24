@@ -66,29 +66,35 @@ if (isset($_POST['login'])) {
             justify-content: flex-end; 
         }
 
+        /* --- UPDATE: LOGO KECIL & TANPA SHADOW --- */
         .brand-logo {
             position: absolute;
             bottom: 30px;
             left: 40px;
-            width: 180px; 
+            width: 120px; /* Diperkecil */
             height: auto;
             z-index: 10;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+            filter: none; /* Shadow dihapus */
         }
 
-        /* --- UPDATE: WIDTH JADI 30% --- */
+        /* --- UPDATE: PADDING 3REM (ATAS KANAN BAWAH) --- */
         .right-panel {
-            width: 30%; /* PERUBAHAN DISINI */
+            width: 30%;
             height: 100vh; 
-            padding: 1rem; 
+            /* Jarak dari tepi layar */
+            padding: 3rem; 
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             z-index: 2;
         }
 
+        /* --- UPDATE: PADDING ISIAN 2REM & BLUR --- */
         .auth-box { 
-            background: #ffffff; 
+            background: rgba(255, 255, 255, 0.9); /* Opacity 0.9 */
+            backdrop-filter: blur(10px); /* Efek Blur */
+            -webkit-backdrop-filter: blur(10px); /* Safari support */
+            
             width: 100%;
             height: 100%;
             border-radius: 24px; 
@@ -97,7 +103,10 @@ if (isset($_POST['login'])) {
             flex-direction: column;
             justify-content: center; 
             align-items: center; 
-            padding: 40px;
+            
+            /* Padding dalam box diperkecil jadi 2rem */
+            padding: 2rem; 
+            
             box-sizing: border-box;
             overflow-y: auto; 
         }
@@ -111,11 +120,12 @@ if (isset($_POST['login'])) {
         .auth-header h2 { 
             margin-bottom: 10px; 
             color: var(--primary-color); 
-            font-size: 2rem;
+            font-size: 1.8rem; /* Sedikit disesuaikan */
         }
         .auth-header p {
             color: var(--text-muted);
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
         }
 
         .input-group {
@@ -127,7 +137,7 @@ if (isset($_POST['login'])) {
             margin-bottom: 8px;
             display: block;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-color);
         }
         .input-wrapper {
@@ -139,16 +149,16 @@ if (isset($_POST['login'])) {
             top: 50%;
             transform: translateY(-50%);
             color: #95a5a6;
-            font-size: 22px;
+            font-size: 20px;
             pointer-events: none;
         }
         .form-control-icon {
             width: 100%;
-            padding: 16px 16px 16px 50px !important; 
+            padding: 14px 14px 14px 45px !important; 
             border: 2px solid #f0f0f0;
             background: #fcfcfc;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             transition: all 0.3s;
             box-sizing: border-box;
             font-family: var(--main-font);
@@ -165,7 +175,7 @@ if (isset($_POST['login'])) {
             color: white;
             font-weight: 700;
             font-size: 1rem;
-            padding: 18px;
+            padding: 16px;
             border-radius: 12px;
             box-shadow: 0 10px 20px -5px rgba(52, 152, 219, 0.3);
             transition: 0.3s;
@@ -184,18 +194,17 @@ if (isset($_POST['login'])) {
             filter: brightness(1.1);
         }
 
-        /* --- RESPONSIVE: HP TETAP FULL WIDTH --- */
         @media (max-width: 768px) {
             body {
                 justify-content: center; 
                 background-position: left center; 
             }
             .right-panel {
-                width: 100%; /* Di HP Tetap Full Width */
-                padding: 1rem; 
+                width: 100%; 
+                padding: 1rem; /* Di HP padding kembali normal agar muat */
             }
             .brand-logo {
-                width: 120px;
+                width: 90px; /* Lebih kecil lagi di HP */
                 bottom: 20px;
                 left: 50%;
                 transform: translateX(-50%);
@@ -215,8 +224,8 @@ if (isset($_POST['login'])) {
                 </div>
                 
                 <?php if($error): ?>
-                    <div style="color:#e74c3c; background: #fdecea; padding: 12px; border-radius: 10px; font-size: 0.9rem; margin-bottom: 25px; display:flex; align-items:center; gap:10px; text-align:left; border:1px solid #fadbd8;">
-                        <span class="material-symbols-rounded">error</span> 
+                    <div style="color:#e74c3c; background: #fdecea; padding: 10px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 20px; display:flex; align-items:center; gap:8px; text-align:left; border:1px solid #fadbd8;">
+                        <span class="material-symbols-rounded" style="font-size:18px">error</span> 
                         <span><?= $error ?></span>
                     </div>
                 <?php endif; ?>
@@ -243,7 +252,7 @@ if (isset($_POST['login'])) {
                     </button>
                 </form>
                 
-                <p style="margin-top:30px; font-size:0.9rem; color: var(--text-muted);">
+                <p style="margin-top:25px; font-size:0.85rem; color: var(--text-muted);">
                     Belum punya akun? <a href="register.php" style="color: var(--accent-color); font-weight: 700; text-decoration:none;">Daftar Sekarang</a>
                 </p>
             </div> 

@@ -175,15 +175,14 @@ if (isset($_POST['simpan_umkm'])) {
         $pathFotoUsaha = uploadImageToMinio($_FILES['foto_usaha'], $keyUmkm, $s3, $bucketName);
     }
 
-    // TAMBAHAN: Masukkan id_user ke database
-    // Jika user biasa -> pakai session id
-    // Jika perangkat desa -> tetap pakai session id (admin juga user)
     $userIdToInsert = $currentUserId;
+    $statusDiacc = ($currentUserLevel == 'perangkat_desa') ? 1 : 0;
 
-    $stmtUmkm = $conn->prepare("INSERT INTO umkm (id_user, nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmtUmkm = $conn->prepare("INSERT INTO umkm (id_user, nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
-    $stmtUmkm->bind_param("issssssddsiiisisis", 
+    $stmtUmkm->bind_param("issssssddsiiiisisis", 
         $userIdToInsert, $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
+        $statusDiacc, // Gunakan variabel ini
         $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
     );
 
@@ -273,21 +272,27 @@ if ($currentUserLevel == 'perangkat_desa') {
             <?php endif; ?>
         </nav>
 
-        <div class="sidebar-profile">
-            <div class="profile-info">
-                <div class="profile-name"><?= htmlspecialchars($currentUserName) ?></div>
-                <div class="profile-role"><?= str_replace('_', ' ', $currentUserLevel) ?></div>
+        <div class="sidebar-bottom-wrapper">
+            
+            <div class="sidebar-profile">
+                <div class="profile-info">
+                    <div class="profile-name"><?= htmlspecialchars($currentUserName) ?></div>
+                    <div class="profile-role"><?= str_replace('_', ' ', $currentUserLevel) ?></div>
+                </div>
+                <a href="logout.php" class="btn-logout" title="Keluar">
+                    <span class="material-symbols-rounded" style="font-size: 20px;">logout</span>
+                </a>
             </div>
-            <a href="logout.php" class="btn-logout" title="Keluar">
-                <span class="material-symbols-rounded" style="font-size: 18px;">logout</span>
-            </a>
-        </div>
 
-        <div class="sidebar-footer" style="border-top: none; margin-top: 0;">
-            <div class="theme-wrapper">
-                <span style="font-size: 0.85rem; font-weight: 500; color: rgba(255,255,255,0.8);">Mode Tampilan</span>
-                <button id="theme-toggle" class="theme-toggle-btn" title="Ganti Mode"><span class="material-symbols-rounded" id="theme-icon" style="font-size: 18px;">dark_mode</span></button>
+            <div class="sidebar-divider"></div>
+
+            <div class="sidebar-footer">
+                <div class="theme-wrapper">
+                    <span style="font-size: 0.85rem; font-weight: 500; color: rgba(255,255,255,0.8);">Mode Tampilan</span>
+                    <button id="theme-toggle" class="theme-toggle-btn" title="Ganti Mode"><span class="material-symbols-rounded" id="theme-icon" style="font-size: 18px;">dark_mode</span></button>
+                </div>
             </div>
+
         </div>
     </div>
 
