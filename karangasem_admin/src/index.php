@@ -10,7 +10,7 @@ if (!isset($_SESSION['login_status']) || $_SESSION['login_status'] !== true) {
 
 // AMBIL DATA USER DARI SESSION
 $currentUserId = $_SESSION['user_id'];
-$currentUserLevel = $_SESSION['level']; // 'perangkat_desa', 'rw', 'user'
+$currentUserLevel = $_SESSION['level']; 
 $currentUserName = $_SESSION['nama_lengkap'];
 
 // --- CONFIG ---
@@ -20,6 +20,10 @@ ini_set('max_execution_time', 300);
 
 include 'koneksi.php';
 require 'vendor/autoload.php'; 
+
+$qUserSidebar = $conn->query("SELECT path_foto_user FROM users WHERE id = $currentUserId");
+$dUserSidebar = $qUserSidebar->fetch_assoc();
+$sidebarPhoto = !empty($dUserSidebar['path_foto_user']) ? $dUserSidebar['path_foto_user'] : 'https://cdn.ivanaldorino.web.id/karangasem/websiteutama/users/default.webp';
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
@@ -85,11 +89,8 @@ if ($currentUserLevel == 'user') $defaultPage = 'umkm';
 $page = isset($_GET['page']) ? $_GET['page'] : $defaultPage;
 
 // Security Layer Halaman
-// Perangkat Desa bisa akses semua (termasuk 'users')
 if ($currentUserLevel == 'rw' && $page != 'lapor') $page = 'lapor';
 if ($currentUserLevel == 'user' && $page != 'umkm') $page = 'umkm';
-
-// Tambahan Security: Hanya perangkat desa yang boleh akses halaman users
 if ($page == 'users' && $currentUserLevel != 'perangkat_desa') {
     header("Location: ?page=" . $defaultPage);
     exit;
@@ -108,27 +109,76 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit_potensi' && isset($_GET['
     }
 }
 
-// --- LOGIC POST ---
+// ============================================================
+//  LOGIC POST (CRUD & ACCOUNT CENTER)
+// ============================================================
 
-// 1. SIMPAN POTENSI
+// 1. UPDATE PROFILE (ACCOUNT CENTER)
+if (isset($_POST['update_profile'])) {
+    $nama = $_POST['nama_lengkap'];
+    $alamat = $_POST['alamat'];
+    $jk = $_POST['jenis_kelamin'];
+    $rw = $_POST['rw'];
+    $hp = $_POST['no_hp'];
+    $wa = isset($_POST['punya_whatsapp']) ? 1 : 0;
+    $username = $_POST['username']; // User bisa ganti username sendiri (Optional: cek duplikat)
+
+    // Cek Duplikat Username (Kecuali punya sendiri)
+    $cekUser = $conn->query("SELECT id FROM users WHERE username = '$username' AND id != $currentUserId");
+    if ($cekUser->num_rows > 0) {
+        header("Location: ?page=$page&status=error_username_exists");
+        exit;
+    }
+
+    // Upload Foto User
+    $pathFotoUser = null;
+    if (isset($_FILES['foto_profil']) && $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK) {
+        $cleanNama = slugify($nama);
+        $tgl = date('Ymd-His');
+        $keyUser = "websiteutama/users/" . $tgl . $cleanNama . ".webp";
+        $pathFotoUser = uploadImageToMinio($_FILES['foto_profil'], $keyUser, $s3, $bucketName);
+    }
+
+    // Query Update
+    $sqlProfile = "UPDATE users SET nama_lengkap=?, alamat=?, jenis_kelamin=?, rw=?, no_hp=?, punya_whatsapp=?, username=?";
+    if ($pathFotoUser) {
+        $sqlProfile .= ", path_foto_user=?"; // Tambah update foto jika ada
+    }
+    $sqlProfile .= " WHERE id=?";
+
+    $stmt = $conn->prepare($sqlProfile);
+    
+    if ($pathFotoUser) {
+        $stmt->bind_param("sssssissi", $nama, $alamat, $jk, $rw, $hp, $wa, $username, $pathFotoUser, $currentUserId);
+    } else {
+        $stmt->bind_param("sssssisi", $nama, $alamat, $jk, $rw, $hp, $wa, $username, $currentUserId);
+    }
+
+    if ($stmt->execute()) {
+        // Update Session Nama
+        $_SESSION['nama_lengkap'] = $nama;
+        header("Location: ?page=$page&status=success_update_profile");
+        exit;
+    }
+}
+
+// 2. SIMPAN POTENSI
 if (isset($_POST['simpan_potensi']) && $currentUserLevel == 'perangkat_desa') { 
+    // ... (Kode Simpan Potensi Tetap Sama) ...
     $nama = $_POST['nama'];
     $jenis = $_POST['jenis'];
     $deskripsi = $_POST['deskripsi'];
     $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : null;
     $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : null;
     $link = !empty($_POST['link_website']) ? $_POST['link_website'] : null;
-    
     $isUpdate = isset($_POST['id_potensi']) && !empty($_POST['id_potensi']);
     $fotoUrl = $isUpdate ? $_POST['foto_lama'] : null; 
-
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $nama)));
         $fileName = "websiteutama/potensi_desa/" . $slug . "-" . time() . ".webp";
         $uploaded = uploadImageToMinio($_FILES['foto'], $fileName, $s3, $bucketName);
         if ($uploaded) $fotoUrl = $uploaded;
     }
-
     if ($isUpdate) {
         $id = intval($_POST['id_potensi']);
         $stmt = $conn->prepare("UPDATE potensi_desa SET nama_potensi=?, jenis_potensi=?, deskripsi_potensi=?, path_foto_potensi=?, link_potensi=?, latitude_potensi=?, longitude_potensi=? WHERE id=?");
@@ -142,15 +192,12 @@ if (isset($_POST['simpan_potensi']) && $currentUserLevel == 'perangkat_desa') {
         $stmt->bind_param("ssssssdi", $nama, $jenis, $deskripsi, $fotoUrl, $link, $lat, $lng, $nextUrutan);
         $redirectStatus = "success_add";
     }
-
-    if ($stmt->execute()) {
-        header("Location: ?page=potensi&status=" . $redirectStatus);
-        exit;
-    }
+    if ($stmt->execute()) { header("Location: ?page=potensi&status=" . $redirectStatus); exit; }
 }
 
-// 2. SIMPAN UMKM
+// 3. SIMPAN UMKM
 if (isset($_POST['simpan_umkm'])) {
+    // ... (Kode Simpan UMKM Tetap Sama) ...
     $namaUsaha = $_POST['nama_usaha'];
     $pemilik = $_POST['nama_pemilik'];
     $kategori = $_POST['kategori'];
@@ -159,7 +206,6 @@ if (isset($_POST['simpan_umkm'])) {
     $deskripsiUsaha = $_POST['deskripsi_usaha'];
     $lat = !empty($_POST['latitude']) ? $_POST['latitude'] : 0;
     $lng = !empty($_POST['longitude']) ? $_POST['longitude'] : 0;
-    
     $qris = isset($_POST['qris']) ? 1 : 0;
     $punyaWa = isset($_POST['punya_wa']) ? 1 : 0;
     $waSama = isset($_POST['wa_sama']) ? 1 : 0;
@@ -168,7 +214,6 @@ if (isset($_POST['simpan_umkm'])) {
     $userIg = $punyaIg ? $_POST['user_ig'] : null;
     $punyaFb = isset($_POST['punya_fb']) ? 1 : 0;
     $linkFb = $punyaFb ? $_POST['link_fb'] : null;
-
     $pathFotoUsaha = null;
     if (isset($_FILES['foto_usaha']) && $_FILES['foto_usaha']['error'] === UPLOAD_ERR_OK) {
         $cleanNamaUsaha = slugify($namaUsaha);
@@ -176,37 +221,20 @@ if (isset($_POST['simpan_umkm'])) {
         $keyUmkm = "websiteutama/umkm/" . $cleanNamaUsaha . "_" . $tgl . ".webp";
         $pathFotoUsaha = uploadImageToMinio($_FILES['foto_usaha'], $keyUmkm, $s3, $bucketName);
     }
-
     $userIdToInsert = $currentUserId;
     $statusDiacc = ($currentUserLevel == 'perangkat_desa') ? 1 : 0;
-
     $stmtUmkm = $conn->prepare("INSERT INTO umkm (id_user, nama_usaha, deskripsi_usaha, kategori_usaha, nama_pemilik_usaha, kontak_usaha, alamat_usaha, latitude, longitude, path_foto_usaha, diacc, qris, punya_whatsapp, no_wa_apakahsama, no_wa_berbeda, punya_instagram, username_instagram, punya_facebook, link_facebook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    $stmtUmkm->bind_param("issssssddsiiiisisis", 
-        $userIdToInsert, $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, 
-        $statusDiacc,
-        $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb
-    );
-
+    $stmtUmkm->bind_param("issssssddsiiiisisis", $userIdToInsert, $namaUsaha, $deskripsiUsaha, $kategori, $pemilik, $kontak, $alamat, $lat, $lng, $pathFotoUsaha, $statusDiacc, $qris, $punyaWa, $waSama, $waBeda, $punyaIg, $userIg, $punyaFb, $linkFb);
     if ($stmtUmkm->execute()) {
         $newUmkmId = $conn->insert_id;
-
         if (isset($_POST['nama_produk']) && is_array($_POST['nama_produk'])) {
             $stmtProduk = $conn->prepare("INSERT INTO umkmproduk (umkm_id, nama_produk, harga_produk, deskripsi_produk, path_foto_produk) VALUES (?, ?, ?, ?, ?)");
-            
             foreach ($_POST['nama_produk'] as $key => $nmProduk) {
                 $hrgProduk = str_replace('.', '', $_POST['harga_produk'][$key]);
                 $descProduk = $_POST['deskripsi_produk'][$key];
                 $pathFotoProduk = null;
-                
                 if (isset($_FILES['foto_produk']['name'][$key]) && $_FILES['foto_produk']['error'][$key] === UPLOAD_ERR_OK) {
-                    $singleFile = [
-                        'name' => $_FILES['foto_produk']['name'][$key],
-                        'type' => $_FILES['foto_produk']['type'][$key],
-                        'tmp_name' => $_FILES['foto_produk']['tmp_name'][$key],
-                        'error' => $_FILES['foto_produk']['error'][$key],
-                        'size' => $_FILES['foto_produk']['size'][$key]
-                    ];
+                    $singleFile = ['name' => $_FILES['foto_produk']['name'][$key], 'type' => $_FILES['foto_produk']['type'][$key], 'tmp_name' => $_FILES['foto_produk']['tmp_name'][$key], 'error' => $_FILES['foto_produk']['error'][$key], 'size' => $_FILES['foto_produk']['size'][$key]];
                     $cleanNamaProduk = slugify($nmProduk);
                     $cleanNamaUsaha = slugify($namaUsaha);
                     $tgl = date('Ymd-His');
@@ -222,125 +250,34 @@ if (isset($_POST['simpan_umkm'])) {
     }
 }
 
-// ACTION LOGIC (Hanya Perangkat Desa)
+// 4. CRUD MANAJEMEN PENGGUNA (ADMIN)
 if ($currentUserLevel == 'perangkat_desa') {
-    if (isset($_GET['action']) && $_GET['action'] == 'reorder_potensi') {
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
-        if ($data) { foreach ($data as $item) { $conn->query("UPDATE potensi_desa SET urutan = ".intval($item['urutan'])." WHERE id = ".intval($item['id'])); } echo json_encode(['status' => 'success']); } exit;
-    }
-    if (isset($_GET['action']) && $_GET['action'] == 'hapus_potensi') { 
-        $conn->query("DELETE FROM potensi_desa WHERE id = ".intval($_GET['id'])); header("Location: ?page=potensi"); exit; 
-    }
-    if (isset($_GET['action']) && $_GET['action'] == 'acc_umkm') { 
-        $conn->query("UPDATE umkm SET diacc = 1 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_acc"); exit; 
-    }
-    if (isset($_GET['action']) && $_GET['action'] == 'nonaktif_umkm') { 
-        $conn->query("UPDATE umkm SET diacc = 0 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_deactivate"); exit; 
-    }
-}
-
-// 3. SIMPAN TANGGAPAN LAPORAN
-if (isset($_POST['kirim_tanggapan'])) {
-    $idLaporan = intval($_POST['id_laporan']);
-    $isiTanggapan = $_POST['isi_tanggapan'];
-    $statusBaru = $_POST['status_laporan'];
-    
-    $isArchived = ($statusBaru == 'selesai') ? 1 : 0;
-
-    // Validasi Security 48 Jam
-    $cekLaporan = $conn->query("SELECT created_at, rw FROM laporandesa WHERE id = $idLaporan")->fetch_assoc();
-    if ($cekLaporan) {
-        $waktuLapor = strtotime($cekLaporan['created_at']);
-        $selisihJam = (time() - $waktuLapor) / 3600;
-        
-        $qUser = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
-        $uData = $qUser->fetch_assoc();
-        $userRw = 'rw-' . $uData['rw'];
-
-        $bolehJawab = false;
-        if ($currentUserLevel == 'rw' && $selisihJam <= 48 && $userRw == $cekLaporan['rw']) {
-            $bolehJawab = true;
-        } else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) {
-            $bolehJawab = true;
-        }
-
-        if ($bolehJawab) {
-            // A. INSERT KE TABEL RIWAYAT
-            $stmtHist = $conn->prepare("INSERT INTO riwayat_tanggapan (id_laporan, id_user, isi_tanggapan, status_laporan) VALUES (?, ?, ?, ?)");
-            $stmtHist->bind_param("iiss", $idLaporan, $currentUserId, $isiTanggapan, $statusBaru);
-            
-            if ($stmtHist->execute()) {
-                // B. UPDATE TABEL UTAMA
-                $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=?, is_archived=? WHERE id=?");
-                $stmt->bind_param("ssiii", $isiTanggapan, $statusBaru, $currentUserId, $isArchived, $idLaporan);
-                $stmt->execute();
-
-                $msg = ($statusBaru == 'selesai') ? 'success_selesai' : 'success_tanggapan';
-                header("Location: ?page=lapor&status=" . $msg);
-                exit;
-            }
-        } else {
-            header("Location: ?page=lapor&status=error_hak_akses");
-            exit;
-        }
-    }
-}
-
-// 4. CRUD MANAJEMEN PENGGUNA (LOGIC BARU)
-if ($currentUserLevel == 'perangkat_desa') {
-    
-    // A. HAPUS USER
     if (isset($_GET['action']) && $_GET['action'] == 'hapus_user') {
+        // ... (Kode Hapus User Tetap Sama) ...
         $idUser = intval($_GET['id']);
-        // Mencegah hapus diri sendiri
-        if ($idUser != $currentUserId) {
-            $conn->query("DELETE FROM users WHERE id = $idUser");
-            header("Location: ?page=users&status=success_delete_user");
-        } else {
-            header("Location: ?page=users&status=error_self_delete");
-        }
-        exit;
+        if ($idUser != $currentUserId) { $conn->query("DELETE FROM users WHERE id = $idUser"); header("Location: ?page=users&status=success_delete_user"); } else { header("Location: ?page=users&status=error_self_delete"); } exit;
     }
-
-    // B. SIMPAN USER (TAMBAH & EDIT)
     if (isset($_POST['simpan_user'])) {
+        // ... (Kode Simpan User Tetap Sama) ...
         $idUser = !empty($_POST['id_user']) ? intval($_POST['id_user']) : null;
         $nama = $_POST['nama_lengkap'];
         $username = $_POST['username'];
         $level = $_POST['level'];
         $hp = $_POST['no_hp'];
         $alamat = $_POST['alamat'];
-        $rw = $_POST['rw']; // Opsional
+        $rw = $_POST['rw'];
         $password = $_POST['password'];
-
-        // Validasi Username Unik (jika tambah baru atau ganti username)
         $cekUser = $conn->query("SELECT id FROM users WHERE username = '$username' AND id != " . ($idUser ? $idUser : 0));
-        if ($cekUser->num_rows > 0) {
-            header("Location: ?page=users&status=error_username_exists");
-            exit;
-        }
-
+        if ($cekUser->num_rows > 0) { header("Location: ?page=users&status=error_username_exists"); exit; }
         if ($idUser) {
-            // --- MODE EDIT ---
             $sql = "UPDATE users SET nama_lengkap=?, username=?, level=?, no_hp=?, alamat=?, rw=? WHERE id=?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ssssssi", $nama, $username, $level, $hp, $alamat, $rw, $idUser);
             $stmt->execute();
-
-            // Update Password terpisah (hanya jika diisi)
-            if (!empty($password)) {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $conn->query("UPDATE users SET password = '$hash' WHERE id = $idUser");
-            }
+            if (!empty($password)) { $hash = password_hash($password, PASSWORD_DEFAULT); $conn->query("UPDATE users SET password = '$hash' WHERE id = $idUser"); }
             header("Location: ?page=users&status=success_edit_user");
-
         } else {
-            // --- MODE TAMBAH ---
-            if (empty($password)) {
-                header("Location: ?page=users&status=error_password_empty"); 
-                exit;
-            }
+            if (empty($password)) { header("Location: ?page=users&status=error_password_empty"); exit; }
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("INSERT INTO users (nama_lengkap, username, password, level, no_hp, alamat, rw) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("sssssss", $nama, $username, $hash, $level, $hp, $alamat, $rw);
@@ -348,6 +285,48 @@ if ($currentUserLevel == 'perangkat_desa') {
             header("Location: ?page=users&status=success_add_user");
         }
         exit;
+    }
+}
+
+// ACTION LOGIC (LAINNYA)
+if ($currentUserLevel == 'perangkat_desa') {
+    if (isset($_GET['action']) && $_GET['action'] == 'reorder_potensi') {
+        $input = file_get_contents('php://input'); $data = json_decode($input, true); if ($data) { foreach ($data as $item) { $conn->query("UPDATE potensi_desa SET urutan = ".intval($item['urutan'])." WHERE id = ".intval($item['id'])); } echo json_encode(['status' => 'success']); } exit;
+    }
+    if (isset($_GET['action']) && $_GET['action'] == 'hapus_potensi') { $conn->query("DELETE FROM potensi_desa WHERE id = ".intval($_GET['id'])); header("Location: ?page=potensi"); exit; }
+    if (isset($_GET['action']) && $_GET['action'] == 'acc_umkm') { $conn->query("UPDATE umkm SET diacc = 1 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_acc"); exit; }
+    if (isset($_GET['action']) && $_GET['action'] == 'nonaktif_umkm') { $conn->query("UPDATE umkm SET diacc = 0 WHERE id = ".intval($_GET['id'])); header("Location: ?page=umkm&status=success_deactivate"); exit; }
+}
+
+// 5. SIMPAN TANGGAPAN LAPORAN
+if (isset($_POST['kirim_tanggapan'])) {
+    // ... (Kode Simpan Tanggapan Tetap Sama) ...
+    $idLaporan = intval($_POST['id_laporan']);
+    $isiTanggapan = $_POST['isi_tanggapan'];
+    $statusBaru = $_POST['status_laporan'];
+    $isArchived = ($statusBaru == 'selesai') ? 1 : 0;
+    $cekLaporan = $conn->query("SELECT created_at, rw FROM laporandesa WHERE id = $idLaporan")->fetch_assoc();
+    if ($cekLaporan) {
+        $waktuLapor = strtotime($cekLaporan['created_at']);
+        $selisihJam = (time() - $waktuLapor) / 3600;
+        $qUser = $conn->query("SELECT rw FROM users WHERE id = $currentUserId");
+        $uData = $qUser->fetch_assoc();
+        $userRw = 'rw-' . $uData['rw'];
+        $bolehJawab = false;
+        if ($currentUserLevel == 'rw' && $selisihJam <= 48 && $userRw == $cekLaporan['rw']) $bolehJawab = true;
+        else if ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) $bolehJawab = true;
+        if ($bolehJawab) {
+            $stmtHist = $conn->prepare("INSERT INTO riwayat_tanggapan (id_laporan, id_user, isi_tanggapan, status_laporan) VALUES (?, ?, ?, ?)");
+            $stmtHist->bind_param("iiss", $idLaporan, $currentUserId, $isiTanggapan, $statusBaru);
+            if ($stmtHist->execute()) {
+                $stmt = $conn->prepare("UPDATE laporandesa SET tanggapan=?, status=?, id_penanggap=?, is_archived=? WHERE id=?");
+                $stmt->bind_param("ssiii", $isiTanggapan, $statusBaru, $currentUserId, $isArchived, $idLaporan);
+                $stmt->execute();
+                $msg = ($statusBaru == 'selesai') ? 'success_selesai' : 'success_tanggapan';
+                header("Location: ?page=lapor&status=" . $msg);
+                exit;
+            }
+        } else { header("Location: ?page=lapor&status=error_hak_akses"); exit; }
     }
 }
 ?>
@@ -385,18 +364,22 @@ if ($currentUserLevel == 'perangkat_desa') {
                 <a href="?page=umkm" class="menu-item <?= $page == 'umkm' ? 'active' : '' ?>"><span class="material-symbols-rounded">shopping_cart</span> UMKM Saya</a>
             <?php endif; ?>
         </nav>
-
+        <!-- SIDEBAR BAWAH -->
         <div class="sidebar-bottom-wrapper">
             
-            <div class="sidebar-profile">
+            <div class="sidebar-profile" onclick="openAccountCenter()" style="cursor: pointer;">
                 <div class="profile-info">
                     <div class="profile-name"><?= htmlspecialchars($currentUserName) ?></div>
                     <div class="profile-role"><?= str_replace('_', ' ', $currentUserLevel) ?></div>
                 </div>
-                <a href="logout.php" class="btn-logout" title="Keluar">
-                    <span class="material-symbols-rounded" style="font-size: 20px;">logout</span>
-                </a>
+                
+                <img src="<?= htmlspecialchars($sidebarPhoto) ?>" alt="Profil" class="sidebar-user-photo">
             </div>
+            
+            <a href="logout.php" class="btn-logout" title="Keluar">
+                <span class="material-symbols-rounded">logout</span> 
+                Logout
+            </a>
 
             <div class="sidebar-divider"></div>
 
@@ -411,6 +394,8 @@ if ($currentUserLevel == 'perangkat_desa') {
     </div>
 
     <div class="main-content">
+
+    
         <?php if (isset($_GET['status'])): ?>
             <div id="status-message" data-status="<?= $_GET['status'] ?>" style="display:none;"></div>
         <?php endif; ?>
@@ -426,6 +411,7 @@ if ($currentUserLevel == 'perangkat_desa') {
                         </a>
                     <?php endif; ?>
                 </div>
+                
                 <form id="form-potensi" method="POST" enctype="multipart/form-data" novalidate>
                     <input type="hidden" name="id_potensi" value="<?= $editMode ? ($editData['id'] ?? '') : '' ?>">
                     <input type="hidden" name="foto_lama" value="<?= $editMode ? ($editData['path_foto_potensi'] ?? '') : '' ?>">
@@ -633,7 +619,7 @@ if ($currentUserLevel == 'perangkat_desa') {
                         </button>
                     </form>
                     <script>
-                        // SCRIPT UMKM
+                        // SCRIPT SAMA DENGAN YANG ANDA BERIKAN
                         function toggleSosmed(type) { const chk = document.getElementById('chk-' + type); const box = document.getElementById('box-' + type); box.style.display = chk.checked ? 'block' : 'none'; }
                         function toggleWaSama() { const chk = document.getElementById('chk-wa-sama'); const inp = document.getElementById('inp-wa-beda'); inp.style.display = chk.checked ? 'none' : 'block'; if(!chk.checked) inp.focus(); }
                         function setupUploadArea(areaId, inputId, textId) { const area = document.getElementById(areaId); const input = document.getElementById(inputId); const text = document.getElementById(textId); if(!area || !input) return; ['dragenter', 'dragover'].forEach(eventName => { area.addEventListener(eventName, (e) => { e.preventDefault(); area.classList.add('dragover'); }); }); ['dragleave', 'drop'].forEach(eventName => { area.addEventListener(eventName, (e) => { e.preventDefault(); area.classList.remove('dragover'); }); }); area.addEventListener('drop', (e) => { const files = e.dataTransfer.files; if (files.length > 0) { input.files = files; text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`; } }); input.addEventListener('change', function() { if (this.files.length > 0) { text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`; } }); }
@@ -718,6 +704,7 @@ if ($currentUserLevel == 'perangkat_desa') {
                             // --- LOGIKA FILTER USER ---
                             $whereClause = "";
                             if ($currentUserLevel == 'user') {
+                                // User hanya lihat datanya sendiri
                                 $whereClause = "WHERE u.id_user = $currentUserId";
                             }
                             
@@ -794,7 +781,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                             
         <?php elseif ($page == 'lapor' && ($currentUserLevel == 'rw' || $currentUserLevel == 'perangkat_desa')): ?>
             <?php
-            // Logic View Mode
             $viewMode = isset($_GET['view']) ? $_GET['view'] : 'aktif'; 
             $archiveValue = ($viewMode == 'arsip') ? 1 : 0;
             ?>
@@ -805,6 +791,7 @@ if ($currentUserLevel == 'perangkat_desa') {
                         <span class="material-symbols-rounded" style="font-size: 32px; color: var(--text-muted);">archive</span> 
                         Arsip Laporan Selesai
                     <?php else: ?>
+                        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--accent-color);">campaign</span> 
                         Laporan Warga Aktif
                     <?php endif; ?>
                 </h1>
@@ -883,7 +870,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                         </thead>
                         <tbody>
                         <?php 
-                        // QUERY DATA
                         $sqlLapor = "SELECT l.*, u.nama_lengkap as penanggap_nama 
                                      FROM laporandesa l 
                                      LEFT JOIN users u ON l.id_penanggap = u.id 
@@ -905,7 +891,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                                 $selisihJam = (time() - $waktuLapor) / 3600;
                                 $sudahDijawab = !empty($row['tanggapan']);
 
-                                // FETCH RIWAYAT
                                 $idLap = $row['id'];
                                 $qHist = $conn->query("SELECT r.*, u.nama_lengkap 
                                                        FROM riwayat_tanggapan r 
@@ -923,7 +908,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                                 }
                                 $historyJson = htmlspecialchars(json_encode($historyArray), ENT_QUOTES, 'UTF-8');
 
-                                // Hak Akses Tombol
                                 $allowAction = false;
                                 if ($currentUserLevel == 'rw' && $selisihJam <= 48) $allowAction = true;
                                 elseif ($currentUserLevel == 'perangkat_desa' && $selisihJam > 48) $allowAction = true;
@@ -1012,7 +996,6 @@ if ($currentUserLevel == 'perangkat_desa') {
             </div>
 
             <script>
-            // FUNGSI JAVASCRIPT UNTUK HANDLE HISTORY & FORM (Tetap Sama)
             function openModalHistory(id, pesan, canEdit, historyJson) {
                 const modal = document.getElementById('modal-tanggapan');
                 const form = document.getElementById('form-tanggapan-baru');
@@ -1060,16 +1043,14 @@ if ($currentUserLevel == 'perangkat_desa') {
             function closeModal() { document.getElementById('modal-tanggapan').style.display = 'none'; }
             window.onclick = function(event) { if (event.target == document.getElementById('modal-tanggapan')) closeModal(); }
             </script>
-        <!-- MANAJEMEN USER -->
+
         <?php elseif ($page == 'users' && $currentUserLevel == 'perangkat_desa'): ?>
             <h1>Manajemen Pengguna</h1>
-            
             <div style="margin-bottom: 20px; text-align: right;">
                 <button onclick="openModalUser()" class="btn btn-primary">
                     <span class="material-symbols-rounded">person_add</span> Tambah Pengguna Baru
                 </button>
             </div>
-
             <div id="modal-user" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
                 <div class="card" style="width:500px; max-width:90%; animation: slideDown 0.3s ease;">
                     <div class="card-header" style="display:flex; justify-content:space-between;">
@@ -1078,14 +1059,12 @@ if ($currentUserLevel == 'perangkat_desa') {
                     </div>
                     <form method="POST">
                         <input type="hidden" name="id_user" id="input-id-user">
-                        
                         <div class="form-row" style="margin-bottom:15px;">
                             <div class="flex-grow-1">
                                 <label>Nama Lengkap <span class="required-mark">*</span></label>
                                 <input type="text" name="nama_lengkap" id="input-nama-user" class="form-control" required placeholder="Nama Asli">
                             </div>
                         </div>
-
                         <div class="form-row" style="margin-bottom:15px;">
                             <div class="flex-grow-1">
                                 <label>Username <span class="required-mark">*</span></label>
@@ -1097,7 +1076,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                                 <small id="pass-hint" style="color:var(--text-muted); display:none;">Kosongkan jika tidak ingin mengubah password.</small>
                             </div>
                         </div>
-
                         <div class="form-row" style="margin-bottom:15px;">
                             <div class="flex-grow-1">
                                 <label>Level Akses <span class="required-mark">*</span></label>
@@ -1112,7 +1090,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                                 <input type="text" name="no_hp" id="input-hp" class="form-control" placeholder="08...">
                             </div>
                         </div>
-
                         <div class="form-row" style="margin-bottom:15px;">
                             <div class="flex-grow-1">
                                 <label>Alamat</label>
@@ -1123,14 +1100,12 @@ if ($currentUserLevel == 'perangkat_desa') {
                                 <input type="text" name="rw" id="input-rw" class="form-control" placeholder="Angka saja">
                             </div>
                         </div>
-
                         <button type="submit" name="simpan_user" class="btn btn-primary" style="width:100%;">
                             <span class="material-symbols-rounded">save</span> Simpan Data
                         </button>
                     </form>
                 </div>
             </div>
-
             <div class="card">
                 <div class="table-container">
                     <table style="font-size: 0.9rem;">
@@ -1150,7 +1125,6 @@ if ($currentUserLevel == 'perangkat_desa') {
                         $no = 1;
                         if ($resUsers->num_rows > 0):
                             while($u = $resUsers->fetch_assoc()): 
-                                // Persiapan data JSON untuk Edit (menghindari error kutip)
                                 $userDataJson = htmlspecialchars(json_encode($u), ENT_QUOTES, 'UTF-8');
                         ?>
                             <tr>
@@ -1160,11 +1134,7 @@ if ($currentUserLevel == 'perangkat_desa') {
                                     <span style="font-size:0.8rem; color:#888;"><?= !empty($u['no_hp']) ? $u['no_hp'] : '-' ?></span>
                                 </td>
                                 <td><?= htmlspecialchars($u['username']) ?></td>
-                                <td>
-                                    <span class="badge-level level-<?= $u['level'] ?>">
-                                        <?= str_replace('_', ' ', strtoupper($u['level'])) ?>
-                                    </span>
-                                </td>
+                                <td><span class="badge-level level-<?= $u['level'] ?>"><?= str_replace('_', ' ', strtoupper($u['level'])) ?></span></td>
                                 <td>
                                     <?php 
                                         if ($u['level'] == 'rw') echo "Ketua RW " . htmlspecialchars($u['rw']); 
@@ -1173,42 +1143,27 @@ if ($currentUserLevel == 'perangkat_desa') {
                                     ?>
                                 </td>
                                 <td>
-                                    <button onclick='openModalUser(<?= $userDataJson ?>)' class="btn btn-warning btn-icon-only" title="Edit">
-                                        <span class="material-symbols-rounded">edit</span>
-                                    </button>
-                                    
+                                    <button onclick='openModalUser(<?= $userDataJson ?>)' class="btn btn-warning btn-icon-only" title="Edit"><span class="material-symbols-rounded">edit</span></button>
                                     <?php if($u['id'] != $currentUserId): ?>
-                                        <a href="?page=users&action=hapus_user&id=<?= $u['id'] ?>" class="btn btn-danger btn-icon-only btn-delete" data-confirm="Yakin ingin menghapus pengguna ini?">
-                                            <span class="material-symbols-rounded">delete</span>
-                                        </a>
+                                        <a href="?page=users&action=hapus_user&id=<?= $u['id'] ?>" class="btn btn-danger btn-icon-only btn-delete" data-confirm="Yakin ingin menghapus pengguna ini?"><span class="material-symbols-rounded">delete</span></a>
                                     <?php else: ?>
-                                        <button class="btn btn-secondary btn-icon-only" disabled style="opacity:0.5; cursor:not-allowed;">
-                                            <span class="material-symbols-rounded">lock</span>
-                                        </button>
+                                        <button class="btn btn-secondary btn-icon-only" disabled style="opacity:0.5; cursor:not-allowed;"><span class="material-symbols-rounded">lock</span></button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
-                        <?php 
-                            endwhile; 
-                        else: 
-                        ?>
-                            <tr>
-                                <td colspan="6" class="text-center" style="padding:30px; color:#999;">Belum ada data pengguna.</td>
-                            </tr>
+                        <?php endwhile; else: ?>
+                            <tr><td colspan="6" class="text-center" style="padding:30px; color:#999;">Belum ada data pengguna.</td></tr>
                         <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
-
             <script>
             function openModalUser(data = null) {
                 const modal = document.getElementById('modal-user');
                 const title = document.getElementById('modal-user-title');
                 const passHint = document.getElementById('pass-hint');
                 const inputId = document.getElementById('input-id-user');
-                
-                // Reset Form
                 document.getElementById('input-nama-user').value = '';
                 document.getElementById('input-username').value = '';
                 document.getElementById('input-password').value = '';
@@ -1216,14 +1171,10 @@ if ($currentUserLevel == 'perangkat_desa') {
                 document.getElementById('input-hp').value = '';
                 document.getElementById('input-alamat').value = '';
                 document.getElementById('input-rw').value = '';
-
                 if (data) {
-                    // MODE EDIT
                     title.innerText = "Edit Pengguna";
-                    passHint.style.display = "block"; // Tampilkan pesan "kosongkan jika..."
-                    document.getElementById('input-password').required = false; // Password tidak wajib saat edit
-
-                    // Isi data
+                    passHint.style.display = "block";
+                    document.getElementById('input-password').required = false;
                     inputId.value = data.id;
                     document.getElementById('input-nama-user').value = data.nama_lengkap;
                     document.getElementById('input-username').value = data.username;
@@ -1232,25 +1183,100 @@ if ($currentUserLevel == 'perangkat_desa') {
                     document.getElementById('input-alamat').value = data.alamat;
                     document.getElementById('input-rw').value = data.rw;
                 } else {
-                    // MODE TAMBAH BARU
                     title.innerText = "Tambah Pengguna Baru";
                     passHint.style.display = "none";
-                    document.getElementById('input-password').required = true; // Password wajib saat tambah
+                    document.getElementById('input-password').required = true;
                     inputId.value = "";
                 }
-                
                 modal.style.display = 'flex';
             }
-
-            function closeModalUser() {
-                document.getElementById('modal-user').style.display = 'none';
-            }
-
-            window.onclick = function(event) {
-                if (event.target == document.getElementById('modal-user')) closeModalUser();
-            }
+            function closeModalUser() { document.getElementById('modal-user').style.display = 'none'; }
+            window.onclick = function(event) { if (event.target == document.getElementById('modal-user')) closeModalUser(); }
             </script>
         <?php endif; ?>
+    </div>
+
+    <?php
+    // Fetch Data User yang Sedang Login
+    $qMyProfile = $conn->query("SELECT * FROM users WHERE id = $currentUserId");
+    $myProfile = $qMyProfile->fetch_assoc();
+    // Default foto jika kosong
+    $myPhoto = !empty($myProfile['path_foto_user']) ? $myProfile['path_foto_user'] : 'https://cdn.ivanaldorino.web.id/karangasem/websiteutama/users/default.webp';
+    ?>
+    <div id="modal-account-center" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="card" style="width:500px; max-width:90%; max-height:90vh; overflow-y:auto; animation: slideDown 0.3s ease;">
+            <div class="card-header" style="display:flex; justify-content:space-between; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 20px;">
+                <h3>Account Center</h3>
+                <button onclick="document.getElementById('modal-account-center').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="profile-upload-container">
+                    <img src="<?= htmlspecialchars($myPhoto) ?>" id="preview-foto-user" class="profile-preview">
+                    <label for="input-foto-user" class="btn-upload-mini">
+                        <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">edit</span> Ganti Foto
+                    </label>
+                    <input type="file" name="foto_profil" id="input-foto-user" accept="image/*" style="display:none;" onchange="previewImage(this)">
+                </div>
+
+                <div class="form-row">
+                    <div class="flex-grow-1">
+                        <label>Nama Lengkap</label>
+                        <input type="text" name="nama_lengkap" class="form-control" value="<?= htmlspecialchars($myProfile['nama_lengkap']) ?>" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="flex-grow-1">
+                        <label>Username</label>
+                        <input type="text" name="username" class="form-control" value="<?= htmlspecialchars($myProfile['username']) ?>" required>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label>Password</label>
+                        <input type="password" class="form-control" placeholder="********" readonly title="Hanya bisa diganti oleh admin pusat">
+                        <small style="color:var(--text-muted); font-size:0.7rem;">Hubungi Admin untuk reset password.</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="flex-grow-1">
+                        <label>No. HP</label>
+                        <input type="text" name="no_hp" class="form-control" value="<?= htmlspecialchars($myProfile['no_hp']) ?>">
+                    </div>
+                    <div class="flex-grow-1" style="display:flex; align-items:center; padding-top:30px;">
+                        <input type="checkbox" name="punya_whatsapp" id="chk-wa-user" style="width:18px; height:18px;" <?= $myProfile['punya_whatsapp'] ? 'checked' : '' ?>>
+                        <label for="chk-wa-user" style="margin:0; margin-left:8px; cursor:pointer;">Ada WhatsApp?</label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="flex-grow-1">
+                        <label>Jenis Kelamin</label>
+                        <select name="jenis_kelamin" class="form-control">
+                            <option value="L" <?= $myProfile['jenis_kelamin'] == 'L' ? 'selected' : '' ?>>Laki-laki</option>
+                            <option value="P" <?= $myProfile['jenis_kelamin'] == 'P' ? 'selected' : '' ?>>Perempuan</option>
+                        </select>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label>RW</label>
+                        <select name="rw" class="form-control">
+                            <option value="">- Pilih -</option>
+                            <?php for($i=1; $i<=10; $i++): ?>
+                                <option value="<?= $i ?>" <?= $myProfile['rw'] == $i ? 'selected' : '' ?>>RW <?= $i ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label>Alamat Lengkap</label>
+                    <textarea name="alamat" class="form-control" rows="2"><?= htmlspecialchars($myProfile['alamat']) ?></textarea>
+                </div>
+
+                <button type="submit" name="update_profile" class="btn btn-primary" style="width:100%;">
+                    <span class="material-symbols-rounded">save</span> Simpan Perubahan
+                </button>
+            </form>
+        </div>
     </div>
 
     <div id="custom-popup" class="popup-overlay">
@@ -1264,5 +1290,33 @@ if ($currentUserLevel == 'perangkat_desa') {
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Script Khusus Account Center
+        function openAccountCenter() {
+            document.getElementById('modal-account-center').style.display = 'flex';
+        }
+        
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview-foto-user').src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Tambahkan notifikasi sukses update profil
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('status') === 'success_update_profile') {
+            // Panggil fungsi showPopup yang ada di script.js (karena diload setelahnya, kita pakai setTimeout agar aman)
+            setTimeout(() => {
+                // Pastikan fungsi global ada atau buat manual jika perlu
+                if(typeof showPopup === 'function') {
+                    showPopup('success', 'Profil Diperbarui', 'Data akun Anda berhasil disimpan.');
+                }
+            }, 500);
+        }
+    </script>
 </body>
 </html>
