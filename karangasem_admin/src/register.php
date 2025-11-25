@@ -18,13 +18,14 @@ if (isset($_POST['daftar'])) {
     $punya_whatsapp = isset($_POST['punya_whatsapp']) ? 1 : 0;
 
     $level = 'user'; 
+    $foto_default = 'https://cdn.ivanaldorino.web.id/karangasem/websiteutama/users/karangasem-defaultprofile.webp';
 
     // Cek Username Duplikat
     $cek = $conn->query("SELECT * FROM users WHERE username='$username'");
     if ($cek->num_rows == 0) {
         // Query Insert Data Lengkap
-        $sql = "INSERT INTO users (nama_lengkap, alamat, jenis_kelamin, rw, no_hp, punya_whatsapp, username, password, level) 
-                VALUES ('$nama', '$alamat', '$jenis_kelamin', '$rw', '$no_hp', '$punya_whatsapp', '$username', '$password', '$level')";
+        $sql = "INSERT INTO users (nama_lengkap, alamat, jenis_kelamin, rw, no_hp, punya_whatsapp, username, password, level, path_foto_user) 
+                VALUES ('$nama', '$alamat', '$jenis_kelamin', '$rw', '$no_hp', '$punya_whatsapp', '$username', '$password', '$level', '$foto_default')";
         
         if($conn->query($sql)){
             echo "<script>alert('Pendaftaran berhasil! Silakan login.'); window.location='login.php';</script>";

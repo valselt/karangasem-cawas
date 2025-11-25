@@ -250,6 +250,97 @@ if (isset($_POST['simpan_umkm'])) {
     }
 }
 
+// --- LOGIC CRUD TABEL DATA LENGKAP ---
+
+// A. HAPUS PRODUK
+if (isset($_GET['action']) && $_GET['action'] == 'hapus_produk' && isset($_GET['id'])) {
+    $idProduk = intval($_GET['id']);
+    // Validasi kepemilikan (jika user biasa)
+    $qCek = $conn->query("SELECT umkm.id_user FROM umkmproduk JOIN umkm ON umkmproduk.umkm_id = umkm.id WHERE umkmproduk.id = $idProduk");
+    $dCek = $qCek->fetch_assoc();
+    
+    if ($currentUserLevel == 'perangkat_desa' || ($dCek && $dCek['id_user'] == $currentUserId)) {
+        $conn->query("DELETE FROM umkmproduk WHERE id = $idProduk");
+        header("Location: ?page=umkm&status=success_delete_produk");
+        exit;
+    }
+}
+
+// B. UPDATE UMKM (INLINE MODAL)
+if (isset($_POST['update_umkm_inline'])) {
+    $idUmkm = intval($_POST['id_umkm']);
+    
+    // --- SECURITY CHECK: Pastikan yang edit adalah PEMILIK ASLI ---
+    $cekOwner = $conn->query("SELECT id_user FROM umkm WHERE id = $idUmkm");
+    $dataOwner = $cekOwner->fetch_assoc();
+
+    // Hanya lanjut jika data ditemukan DAN id_user sama dengan yang login DAN bukan perangkat desa
+    if ($dataOwner && $dataOwner['id_user'] == $currentUserId && $currentUserLevel == 'user') {
+        
+        $nama = $_POST['nama_usaha'];
+        $pemilik = $_POST['nama_pemilik'];
+        $kontak = $_POST['kontak'];
+        $alamat = $_POST['alamat'];
+        
+        // Upload Foto Baru (Jika ada)
+        $pathFoto = $_POST['foto_lama'];
+        if (isset($_FILES['foto_usaha']) && $_FILES['foto_usaha']['error'] === UPLOAD_ERR_OK) {
+            $cleanNama = slugify($nama);
+            $key = "websiteutama/umkm/" . $cleanNama . "_" . date('YmdHis') . ".webp";
+            $uploaded = uploadImageToMinio($_FILES['foto_usaha'], $key, $s3, $bucketName);
+            if ($uploaded) $pathFoto = $uploaded;
+        }
+
+        $sql = "UPDATE umkm SET nama_usaha=?, nama_pemilik_usaha=?, kontak_usaha=?, alamat_usaha=?, path_foto_usaha=? WHERE id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sssssi", $nama, $pemilik, $kontak, $alamat, $pathFoto, $idUmkm);
+        
+        if ($stmt->execute()) {
+            header("Location: ?page=umkm&status=success_edit");
+            exit;
+        }
+    } else {
+        // Jika mencoba memaksa edit bukan miliknya
+        header("Location: ?page=umkm&status=error_hak_akses");
+        exit;
+    }
+}
+
+// C. UPDATE PRODUK (INLINE MODAL)
+if (isset($_POST['update_produk_inline'])) {
+    $idProduk = intval($_POST['id_produk']);
+    
+    // --- SECURITY CHECK PRODUK ---
+    // Cek apakah produk ini milik UMKM yang dimiliki oleh user yang login
+    $cekProduk = $conn->query("SELECT u.id_user FROM umkmproduk p JOIN umkm u ON p.umkm_id = u.id WHERE p.id = $idProduk");
+    $dataProduk = $cekProduk->fetch_assoc();
+
+    if ($dataProduk && $dataProduk['id_user'] == $currentUserId && $currentUserLevel == 'user') {
+        $nama = $_POST['nama_produk'];
+        $harga = str_replace('.', '', $_POST['harga_produk']);
+        $deskripsi = $_POST['deskripsi_produk'];
+
+        $pathFoto = $_POST['foto_lama_produk'];
+        if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
+            $key = "websiteutama/umkm/fotoprodukumkm/" . slugify($nama) . date('YmdHis') . ".webp";
+            $uploaded = uploadImageToMinio($_FILES['foto_produk'], $key, $s3, $bucketName);
+            if ($uploaded) $pathFoto = $uploaded;
+        }
+
+        $sql = "UPDATE umkmproduk SET nama_produk=?, harga_produk=?, deskripsi_produk=?, path_foto_produk=? WHERE id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sissi", $nama, $harga, $deskripsi, $pathFoto, $idProduk);
+
+        if ($stmt->execute()) {
+            header("Location: ?page=umkm&status=success_edit");
+            exit;
+        }
+    } else {
+        header("Location: ?page=umkm&status=error_hak_akses");
+        exit;
+    }
+}
+
 // 4. CRUD MANAJEMEN PENGGUNA (ADMIN)
 if ($currentUserLevel == 'perangkat_desa') {
     if (isset($_GET['action']) && $_GET['action'] == 'hapus_user') {
@@ -697,25 +788,21 @@ if (isset($_POST['kirim_tanggapan'])) {
                     <table style="font-size: 0.9rem;">
                         <thead>
                             <tr>
-                                <th style="min-width:150px;">Nama Usaha</th>
-                                <th style="min-width:120px;">Pemilik</th>
+                                <th style="min-width:150px;">Nama Usaha & Aksi</th> <th style="min-width:120px;">Pemilik</th>
                                 <th style="min-width:100px;">Kontak</th>
                                 <th style="min-width:200px;">Alamat</th>
                                 <th>Foto Usaha</th>
-                                <th>QRIS</th>
-                                <th>Sosmed</th>
                                 <th style="min-width:150px; border-left: 2px solid var(--card-border);">Produk</th>
                                 <th style="min-width:100px;">Harga</th>
                                 <th style="min-width:200px;">Deskripsi Produk</th>
                                 <th>Foto Produk</th>
-                            </tr>
+                                <th>Aksi Produk</th> </tr>
                         </thead>
                         <tbody>
                             <?php
-                            // --- LOGIKA FILTER USER ---
+                            // Query (TETAP SAMA)
                             $whereClause = "";
                             if ($currentUserLevel == 'user') {
-                                // User hanya lihat datanya sendiri
                                 $whereClause = "WHERE u.id_user = $currentUserId";
                             }
                             
@@ -737,54 +824,87 @@ if (isset($_POST['kirim_tanggapan'])) {
                             }
 
                             if (empty($umkmData)) {
-                                echo "<tr><td colspan='11' class='text-center'>Belum ada data UMKM.</td></tr>";
+                                echo "<tr><td colspan='10' class='text-center'>Belum ada data UMKM.</td></tr>";
                             } else {
                                 foreach ($umkmData as $umkm):
                                     $products = $umkm['products'] ?? [];
                                     $count = count($products);
                                     $rowspan = $count > 0 ? $count : 1;
                                     $info = $umkm['info']; 
+                                    
+                                    // Cek Kepemilikan: Apakah user login adalah pemilik data ini?
+                                    $isOwner = ($info['id_user'] == $currentUserId && $currentUserLevel == 'user');
+                                    
+                                    $jsonInfo = htmlspecialchars(json_encode($info), ENT_QUOTES, 'UTF-8');
                                 ?>
                                 <tr>
-                                    <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><strong><?= htmlspecialchars($info['nama_usaha']) ?></strong>
-                                    <?php if($info['diacc'] == 0): ?><br><span class="badge badge-danger" style="font-size:0.7rem; margin-top:5px;">Pending</span><?php endif; ?>
+                                    <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
+                                        <strong><?= htmlspecialchars($info['nama_usaha']) ?></strong>
+                                        <?php if($info['diacc'] == 0): ?><br><span class="badge badge-danger" style="font-size:0.7rem;">Pending</span><?php endif; ?>
+                                        
+                                        <?php if($isOwner): ?>
+                                        <div style="margin-top: 10px; display:flex; gap:5px;">
+                                            <button onclick="openModalEditUMKM('<?= $jsonInfo ?>')" class="btn btn-warning btn-icon-only" style="width:30px; height:30px; font-size:14px;" title="Edit UMKM"><span class="material-symbols-rounded">edit</span></button>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
+                                    
                                     <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['nama_pemilik_usaha']) ?></td>
                                     <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['kontak_usaha']) ?></td>
                                     <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);"><?= htmlspecialchars($info['alamat_usaha']) ?></td>
                                     <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
                                         <?php if (!empty($info['path_foto_usaha'])): ?>
                                             <a href="<?= htmlspecialchars($info['path_foto_usaha']) ?>" target="_blank"><img src="<?= htmlspecialchars($info['path_foto_usaha']) ?>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"></a>
-                                        <?php else: ?> <span class="text-muted">-</span> <?php endif; ?>
+                                        <?php else: ?> - <?php endif; ?>
                                     </td>
-                                    <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
-                                        <?php if($info['qris']): ?><span class="badge badge-success">Yes</span><?php else: ?><span class="badge badge-danger">No</span><?php endif; ?>
-                                    </td>
-                                    <td rowspan="<?= $rowspan ?>" style="vertical-align:top; background-color:var(--bg-color);">
-                                        <?php 
-                                            $sosmed = [];
-                                            if($info['punya_whatsapp']) $sosmed[] = "WA";
-                                            if($info['punya_instagram']) $sosmed[] = "IG";
-                                            if($info['punya_facebook']) $sosmed[] = "FB";
-                                            echo implode(", ", $sosmed);
-                                        ?>
-                                    </td>
-                                    <td style="border-left: 2px solid var(--card-border);"><?= $count > 0 ? htmlspecialchars($products[0]['nama_produk']) : '<em class="text-muted">Belum ada produk</em>' ?></td>
-                                    <td><?= $count > 0 ? 'Rp '.number_format($products[0]['harga_produk'],0,',','.') : '-' ?></td>
-                                    <td><?= $count > 0 ? htmlspecialchars(substr($products[0]['deskripsi_produk'], 0, 50)).'...' : '-' ?></td>
-                                    <td><?php if($count > 0 && !empty($products[0]['path_foto_produk'])): ?><a href="<?= htmlspecialchars($products[0]['path_foto_produk']) ?>" target="_blank"><img src="<?= htmlspecialchars($products[0]['path_foto_produk']) ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"></a><?php else: ?> - <?php endif; ?></td>
+
+                                    <?php 
+                                    if ($count > 0): 
+                                        $p = $products[0];
+                                        $jsonProduk = htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8');
+                                    ?>
+                                        <td style="border-left: 2px solid var(--card-border);"><?= htmlspecialchars($p['nama_produk']) ?></td>
+                                        <td>Rp <?= number_format($p['harga_produk'],0,',','.') ?></td>
+                                        <td><?= htmlspecialchars(substr($p['deskripsi_produk'], 0, 50)).'...' ?></td>
+                                        <td><?php if(!empty($p['path_foto_produk'])): ?><a href="<?= htmlspecialchars($p['path_foto_produk']) ?>" target="_blank"><img src="<?= htmlspecialchars($p['path_foto_produk']) ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"></a><?php else: ?> - <?php endif; ?></td>
+                                        
+                                        <td>
+                                            <?php if($isOwner): ?>
+                                            <div style="display:flex; gap:5px;">
+                                                <button onclick="openModalEditProduk('<?= $jsonProduk ?>')" class="btn btn-warning btn-icon-only" style="width:30px; height:30px;" title="Edit Produk"><span class="material-symbols-rounded">edit_square</span></button>
+                                                <a href="?page=umkm&action=hapus_produk&id=<?= $p['id_produk'] ?>" class="btn btn-danger btn-icon-only btn-delete" style="width:30px; height:30px;" title="Hapus Produk"><span class="material-symbols-rounded">delete</span></a>
+                                            </div>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php else: ?>
+                                        <td style="border-left: 2px solid var(--card-border);" colspan="5"><em class="text-muted">Belum ada produk</em></td>
+                                    <?php endif; ?>
                                 </tr>
-                                <?php if ($count > 1): for($i = 1; $i < $count; $i++): $p = $products[$i]; ?>
+
+                                <?php if ($count > 1): for($i = 1; $i < $count; $i++): 
+                                    $p = $products[$i]; 
+                                    $jsonProduk = htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8');
+                                ?>
                                 <tr>
                                     <td style="border-left: 2px solid var(--card-border);"><?= htmlspecialchars($p['nama_produk']) ?></td>
                                     <td>Rp <?= number_format($p['harga_produk'],0,',','.') ?></td>
                                     <td><?= htmlspecialchars(substr($p['deskripsi_produk'], 0, 50)).'...' ?></td>
                                     <td><?php if(!empty($p['path_foto_produk'])): ?><a href="<?= htmlspecialchars($p['path_foto_produk']) ?>" target="_blank"><img src="<?= htmlspecialchars($p['path_foto_produk']) ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"></a><?php else: ?> - <?php endif; ?></td>
+                                    
+                                    <td>
+                                        <?php if($isOwner): ?>
+                                        <div style="display:flex; gap:5px;">
+                                            <button onclick="openModalEditProduk('<?= $jsonProduk ?>')" class="btn btn-warning btn-icon-only" style="width:30px; height:30px;" title="Edit Produk"><span class="material-symbols-rounded">edit_square</span></button>
+                                            <a href="?page=umkm&action=hapus_produk&id=<?= $p['id_produk'] ?>" class="btn btn-danger btn-icon-only btn-delete" style="width:30px; height:30px;" title="Hapus Produk"><span class="material-symbols-rounded">delete</span></a>
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php endfor; endif; ?>
-                                <tr><td colspan="11" style="padding:0; border-bottom: 2px solid var(--card-border);"></td></tr>
+                                
+                                <tr><td colspan="10" style="padding:0; border-bottom: 2px solid var(--card-border);"></td></tr>
                                 <?php endforeach; 
-                            } // End else ?>
+                            } ?>
                         </tbody>
                     </table>
                 </div>
@@ -1328,6 +1448,205 @@ if (isset($_POST['kirim_tanggapan'])) {
                 }
             }, 500);
         }
+    </script>
+
+    <div id="modal-edit-umkm" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="card" style="width:500px; max-width:95%; max-height:90vh; overflow-y:auto; animation: slideDown 0.3s ease;">
+            <div class="card-header" style="display:flex; justify-content:space-between;">
+                <h3>Edit Data UMKM</h3>
+                <button onclick="document.getElementById('modal-edit-umkm').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="update_umkm_inline" value="1">
+                <input type="hidden" name="id_umkm" id="edit-id-umkm">
+                <input type="hidden" name="foto_lama" id="edit-foto-lama-umkm">
+
+                <div class="form-row" style="margin-bottom:15px;">
+                    <div class="flex-grow-1">
+                        <label>Nama Usaha</label>
+                        <input type="text" name="nama_usaha" id="edit-nama-umkm" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:15px;">
+                    <div class="flex-grow-1">
+                        <label>Pemilik</label>
+                        <input type="text" name="nama_pemilik" id="edit-pemilik-umkm" class="form-control" required>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label>Kontak</label>
+                        <input type="text" name="kontak" id="edit-kontak-umkm" class="form-control" required>
+                    </div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label>Alamat</label>
+                    <textarea name="alamat" id="edit-alamat-umkm" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label>Ganti Foto (Opsional)</label>
+                    <div class="upload-area" id="upload-area-edit-umkm">
+                        <input type="file" name="foto_usaha" id="input-edit-foto-umkm" accept="image/*">
+                        <div class="upload-icon">
+                            <span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span>
+                        </div>
+                        <div class="upload-text" id="text-edit-foto-umkm">
+                            <strong>Klik untuk ganti foto</strong> atau drag & drop di sini
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><span class="material-symbols-rounded">save</span> Simpan Perubahan</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-edit-produk" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="card" style="width:500px; max-width:95%; max-height:90vh; overflow-y:auto; animation: slideDown 0.3s ease;">
+            <div class="card-header" style="display:flex; justify-content:space-between;">
+                <h3>Edit Produk</h3>
+                <button onclick="document.getElementById('modal-edit-produk').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="update_produk_inline" value="1">
+                <input type="hidden" name="id_produk" id="edit-id-produk">
+                <input type="hidden" name="foto_lama_produk" id="edit-foto-lama-produk">
+
+                <div class="form-row" style="margin-bottom:15px;">
+                    <div class="flex-grow-2">
+                        <label>Nama Produk</label>
+                        <input type="text" name="nama_produk" id="edit-nama-produk" class="form-control" required>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label>Harga</label>
+                        <input type="number" name="harga_produk" id="edit-harga-produk" class="form-control" required>
+                    </div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label>Deskripsi</label>
+                    <textarea name="deskripsi_produk" id="edit-deskripsi-produk" class="form-control" rows="3"></textarea>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label>Ganti Foto Produk (Opsional)</label>
+                    <div class="upload-area" id="upload-area-edit-produk">
+                        <input type="file" name="foto_produk" id="input-edit-foto-produk" accept="image/*">
+                        <div class="upload-icon">
+                            <span class="material-symbols-rounded" style="font-size: 60px;">cloud_upload</span>
+                        </div>
+                        <div class="upload-text" id="text-edit-foto-produk">
+                            <strong>Klik untuk ganti foto</strong> atau drag & drop di sini
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><span class="material-symbols-rounded">save</span> Simpan Produk</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Fungsi Membuka Modal Edit UMKM
+        function openModalEditUMKM(jsonInfo) {
+            const data = JSON.parse(jsonInfo);
+            document.getElementById('edit-id-umkm').value = data.id;
+            document.getElementById('edit-foto-lama-umkm').value = data.path_foto_usaha;
+            document.getElementById('edit-nama-umkm').value = data.nama_usaha;
+            document.getElementById('edit-pemilik-umkm').value = data.nama_pemilik_usaha;
+            document.getElementById('edit-kontak-umkm').value = data.kontak_usaha;
+            document.getElementById('edit-alamat-umkm').value = data.alamat_usaha;
+            document.getElementById('modal-edit-umkm').style.display = 'flex';
+        }
+
+        // Fungsi Membuka Modal Edit Produk
+        function openModalEditProduk(jsonInfo) {
+            const data = JSON.parse(jsonInfo);
+            document.getElementById('edit-id-produk').value = data.id_produk;
+            document.getElementById('edit-foto-lama-produk').value = data.path_foto_produk;
+            document.getElementById('edit-nama-produk').value = data.nama_produk;
+            document.getElementById('edit-harga-produk').value = data.harga_produk;
+            document.getElementById('edit-deskripsi-produk').value = data.deskripsi_produk;
+            document.getElementById('modal-edit-produk').style.display = 'flex';
+        }
+    </script>
+
+    <script>
+        // 1. DEFINISI FUNGSI SETUP UPLOAD (PENTING: Harus ada di sini)
+        function setupUploadArea(areaId, inputId, textId) {
+            const area = document.getElementById(areaId);
+            const input = document.getElementById(inputId);
+            const text = document.getElementById(textId);
+
+            if (!area || !input) return;
+
+            // Efek Drag & Drop
+            ['dragenter', 'dragover'].forEach(eventName => {
+                area.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    area.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                area.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                });
+            });
+
+            // Saat file di-drop
+            area.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    input.files = files;
+                    if (text) text.innerHTML = `File Terpilih: <strong>${files[0].name}</strong>`;
+                }
+            });
+
+            // Saat file dipilih lewat klik (Input Change)
+            input.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    if (text) text.innerHTML = `File Terpilih: <strong>${this.files[0].name}</strong>`;
+                }
+            });
+        }
+
+        // 2. Fungsi Membuka Modal Edit UMKM
+        function openModalEditUMKM(jsonInfo) {
+            const data = JSON.parse(jsonInfo);
+            document.getElementById('edit-id-umkm').value = data.id;
+            document.getElementById('edit-foto-lama-umkm').value = data.path_foto_usaha;
+            document.getElementById('edit-nama-umkm').value = data.nama_usaha;
+            document.getElementById('edit-pemilik-umkm').value = data.nama_pemilik_usaha;
+            document.getElementById('edit-kontak-umkm').value = data.kontak_usaha;
+            document.getElementById('edit-alamat-umkm').value = data.alamat_usaha;
+            
+            // Reset teks upload area saat modal dibuka
+            const textUpload = document.getElementById('text-edit-foto-umkm');
+            if(textUpload) textUpload.innerHTML = '<strong>Klik untuk ganti foto</strong> atau drag & drop di sini';
+            
+            document.getElementById('modal-edit-umkm').style.display = 'flex';
+        }
+
+        // 3. Fungsi Membuka Modal Edit Produk
+        function openModalEditProduk(jsonInfo) {
+            const data = JSON.parse(jsonInfo);
+            document.getElementById('edit-id-produk').value = data.id_produk;
+            document.getElementById('edit-foto-lama-produk').value = data.path_foto_produk;
+            document.getElementById('edit-nama-produk').value = data.nama_produk;
+            document.getElementById('edit-harga-produk').value = data.harga_produk;
+            document.getElementById('edit-deskripsi-produk').value = data.deskripsi_produk;
+
+            // Reset teks upload area saat modal dibuka
+            const textUpload = document.getElementById('text-edit-foto-produk');
+            if(textUpload) textUpload.innerHTML = '<strong>Klik untuk ganti foto</strong> atau drag & drop di sini';
+
+            document.getElementById('modal-edit-produk').style.display = 'flex';
+        }
+
+        // 4. Inisialisasi Event Listener Saat Halaman Siap
+        document.addEventListener("DOMContentLoaded", function() {
+            // Setup untuk Edit UMKM
+            setupUploadArea('upload-area-edit-umkm', 'input-edit-foto-umkm', 'text-edit-foto-umkm');
+            
+            // Setup untuk Edit Produk
+            setupUploadArea('upload-area-edit-produk', 'input-edit-foto-produk', 'text-edit-foto-produk');
+        });
     </script>
 </body>
 </html>
