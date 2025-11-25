@@ -43,8 +43,9 @@ if (isset($_POST['login'])) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Login - Desa Karangasem</title>
+    <title>Login Akun Desa Karangasem</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://cdn.ivanaldorino.web.id/karangasem/websiteadmin/karangasem-login.png" type="image/png">
     
     <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@200..700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
@@ -195,19 +196,31 @@ if (isset($_POST['login'])) {
         }
 
         @media (max-width: 768px) {
-            body {
-                justify-content: center; 
-                background-position: left center; 
+            body { 
+                background-position: center; 
+                align-items: center; 
             }
-            .right-panel {
+            .right-panel { 
                 width: 100%; 
-                padding: 1rem; /* Di HP padding kembali normal agar muat */
+                padding: 1rem; 
+                height: auto; 
+                max-height: 100vh;
+                /* Tambahkan padding bawah agar form tidak tertutup logo */
+                padding-bottom: 60px; 
             }
+            .auth-box {
+                border-radius: 16px; 
+                padding: 1.5rem;
+            }
+            
+            /* --- BAGIAN INI YANG DIUBAH --- */
             .brand-logo {
-                width: 90px; /* Lebih kecil lagi di HP */
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
+                display: block; /* Pastikan tampil */
+                width: 70px;    /* Perkecil ukuran logo */
+                left: 50%;      /* Geser ke tengah */
+                transform: translateX(-50%); /* Trik agar pas di tengah persis */
+                bottom: 15px;   /* Jarak dari bawah layar */
+                top: auto;      /* Reset posisi atas jika ada */
             }
         }
     </style>

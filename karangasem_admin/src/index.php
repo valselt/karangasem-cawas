@@ -344,8 +344,19 @@ if (isset($_POST['kirim_tanggapan'])) {
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <div class="sidebar">
+    <div class="mobile-header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <button class="btn-hamburger" onclick="toggleSidebar()">
+                <span class="material-symbols-rounded">menu</span>
+            </button>
+            <span style="font-weight:bold; color:var(--text-color);">Desa Karangasem</span>
+        </div>
+        <img src="<?= htmlspecialchars($sidebarPhoto) ?>" onclick="openAccountCenter()" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
+    </div>
+
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-logo-container">
             <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-color.png" alt="Logo" id="sidebar-logo" class="sidebar-logo">
         </div>

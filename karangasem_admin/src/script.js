@@ -14,6 +14,34 @@ function confirmAction() {
   closePopup();
 }
 
+// ============================================================
+  // LOGIC MOBILE SIDEBAR
+  // ============================================================
+  function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      
+      if (sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+          if(overlay) overlay.classList.remove('show');
+      } else {
+          sidebar.classList.add('open');
+          if(overlay) overlay.classList.add('show');
+      }
+  }
+
+  // Tutup sidebar otomatis jika link menu diklik (UX Mobile)
+  document.addEventListener("DOMContentLoaded", function () {
+      const menuItems = document.querySelectorAll('.sidebar .menu-item');
+      menuItems.forEach(item => {
+          item.addEventListener('click', () => {
+              if (window.innerWidth <= 768) {
+                  toggleSidebar();
+              }
+          });
+      });
+  });
+
 document.addEventListener("DOMContentLoaded", function () {
   // ============================================================
   // 1. LOGIC DARK MODE / LIGHT MODE
@@ -485,4 +513,6 @@ document.addEventListener("DOMContentLoaded", function () {
       body: JSON.stringify(orderData),
     });
   }
+
+  
 });

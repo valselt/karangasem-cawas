@@ -39,8 +39,9 @@ if (isset($_POST['daftar'])) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Daftar - Desa Karangasem</title>
+    <title>Daftar Akun Desa Karangasem</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://cdn.ivanaldorino.web.id/karangasem/websiteadmin/karangasem-register.png" type="image/png">
     
     <link href="https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@200..700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
@@ -64,18 +65,38 @@ if (isset($_POST['daftar'])) {
             display: flex; flex-direction: column; z-index: 2;
         }
         .auth-box { 
-            background: rgba(255, 255, 255, 0.95); /* Lebih solid dikit biar teks jelas */
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            width: 100%; height: 100%; border-radius: 24px; 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            width: 100%; 
+            height: 100%; 
+            border-radius: 24px; 
             box-shadow: 0 0 40px rgba(0,0,0,0.15); 
-            display: flex; flex-direction: column; justify-content: center; align-items: center; 
-            padding: 2rem; box-sizing: border-box; overflow-y: auto; /* Scrollable */
+            
+            display: flex; 
+            flex-direction: column; 
+            /* HAPUS justify-content: center; AGAR ATAS TIDAK TERPOTONG */
+            /* justify-content: center;  <-- Hapus baris ini */
+            align-items: center; 
+            
+            padding: 2rem; 
+            box-sizing: border-box; 
+            overflow-y: auto; 
         }
         /* Scrollbar styling */
         .auth-box::-webkit-scrollbar { width: 6px; }
         .auth-box::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
 
-        .auth-content-inner { width: 100%; max-width: 400px; text-align: center; padding-top: 20px; padding-bottom: 20px;}
+        .auth-content-inner { 
+            /* TAMBAHKAN margin: auto; UNTUK TENGAH VERTIKAL YANG AMAN */
+            margin: auto; 
+            
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            padding-top: 20px; 
+            padding-bottom: 20px;
+        }
         .auth-header h2 { margin-bottom: 5px; color: var(--primary-color); font-size: 1.8rem; }
         .auth-header p { color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem; }
 
@@ -109,9 +130,32 @@ if (isset($_POST['daftar'])) {
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(52, 152, 219, 0.4); filter: brightness(1.1); }
 
         @media (max-width: 768px) {
-            body { justify-content: center; background-position: left center; }
-            .right-panel { width: 100%; padding: 1rem; }
-            .brand-logo { width: 90px; bottom: 20px; left: 50%; transform: translateX(-50%); }
+            body { 
+                background-position: center; 
+                align-items: center; 
+            }
+            .right-panel { 
+                width: 100%; 
+                padding: 1rem; 
+                height: auto; 
+                max-height: 100vh;
+                /* Tambahkan padding bawah agar tombol daftar tidak tertutup logo */
+                padding-bottom: 60px;
+            }
+            .auth-box {
+                border-radius: 16px; 
+                padding: 1.5rem;
+            }
+            
+            /* --- BAGIAN INI YANG DIUBAH --- */
+            .brand-logo {
+                display: block; /* Tampilkan logo */
+                width: 70px;    /* Perkecil ukuran */
+                left: 50%;      /* Geser ke tengah horizontal */
+                transform: translateX(-50%); /* Center alignment */
+                bottom: 15px;   /* Tempel di bawah */
+                top: auto;
+            }
         }
     </style>
 </head>
