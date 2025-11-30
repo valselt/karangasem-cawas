@@ -55,7 +55,7 @@ Berikut adalah preview dari Website Desa Karangasem dan Website Admin Desa Karan
     ./deploy.sh
     ```
 5.  **Masukkan Database**  
-    Jangan Lupa Untuk Import Database karangasem-fix.sql kedalam MySQL
+    Jangan Lupa Untuk Import Database [karangasem-fix.sql](https://github.com/valselt/karangasem-cawas/blob/main/karangasem-fix.sql) kedalam MySQL
 
 
 ## ⚡ Cara Menjalankan
