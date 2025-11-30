@@ -41,7 +41,7 @@ Berikut adalah preview dari Website Desa Karangasem dan Website Admin Desa Karan
 
 3.  **Masuk Ke Direktori anda melalui terminal dengan menggunakan `cd`**  
     ```bash
-    cd C:\{karangasem-cawas}
+    cd karangasem-cawas
     ```
 
 4.  **Jalankan File Deploy**  
