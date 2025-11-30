@@ -1,8 +1,8 @@
 # 📊 Website Desa Karangasem
 
-Aplikasi Berbasis Website Untuk Melakukan Monitoring terhadap Kestabilan dan Stabilisasi Pangan Di Jawa Tengah dengan mengimplementasikan Machine Learning ke Dalamnya.
+Repositori Website, Website Utama, Database, dan Object Storage yang digunakan untuk memenuhi Program Kerja Pribadi GIAT UNNES 13 di Desa Karangasem, Kecamatan Cawas, Kabupaten Klaten.
 
-Repositori Website, Website Utama, Database, dan Object Storage yang digunakan untuk memenuhi Program Kerja Pribadi GIAT UNNES 13 di Desa Karangasem, Kecamatan Cawas, Kabupaten Klaten
+Website Utama dan Website Admin dapat diakses secara online melalui [desakarangasem.web.id](https://desakarangasem.web.id/) dan [portal.desakarangasem.web.id](https://portal.desakarangasem.web.id/)
 
 <div align="center">
   <img src="https://img.shields.io/badge/Docker-%232496ED?style=for-the-badge&logo=docker&logoColor=white">
