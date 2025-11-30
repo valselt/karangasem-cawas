@@ -33,8 +33,7 @@
             <span class="text-title">Welcome To </span>
             <span class="text-title">DESA KARANGASEM</span>
             <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              Desa Karangasem adalah sebuah desa di Kecamatan Cawas, Klaten, dengan luas ±193,56 ha dan penduduk sekitar ±3.100 jiwa; berakar dari nama yang berarti “pekarangan berisi pohon asem”
             </p>
           </div>
           <div class="section-1-2">

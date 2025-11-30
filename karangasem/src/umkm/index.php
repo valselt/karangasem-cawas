@@ -29,10 +29,10 @@
     <div class="container-umkm">
         <div class="section-1-umkm">
             <span class="text-title-umkm">UMKM</span>
-            <div class="other-button">
+            <a class="other-button" href="https://portal.desakarangasem.web.id/">
                 <span class="material-symbols-rounded">add_location_alt</span>
                 <p>Tambah Lokasi UMKM</p>
-            </div>
+        </a>
         </div>
 
         <div class="umkm-search-wrapper">
