@@ -6,6 +6,7 @@
 
 # Abaikan folder data storage (Minio/Database)
 minio_storage/
+karangasem_admin/src/koneksi.php
 karangasem_admin/src/vendor/
 karangasem_admin/src/composer.json
 karangasem_admin/src/composer.lock
