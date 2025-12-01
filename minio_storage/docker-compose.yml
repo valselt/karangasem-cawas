@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio_server
+    # Perintah untuk menjalankan server & mengaktifkan dashboard UI
+    command: server /data --console-address ":9001"
+    restart: always
+    ports:
+      - "9000:9000" # Port API (Digunakan oleh kodingan PHP nanti)
+      - "9001:9001" # Port Dashboard (Untuk Anda buka di Browser)
+    environment:
+      # Ganti user & password sesuai keinginan
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=aldorino04
+    volumes:
+      # Folder di laptop untuk menyimpan data fisik (agar tidak hilang saat restart)
+      - ./minio_data:/data
+
+volumes:
+  minio_data:

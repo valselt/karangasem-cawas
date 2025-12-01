@@ -5,7 +5,7 @@
 *.avi
 
 # Abaikan folder data storage (Minio/Database)
-minio_storage/
+minio_storage/minio_data
 karangasem_admin/src/koneksi.php
 karangasem/src/koneksi.php
 karangasem_admin/src/vendor/
