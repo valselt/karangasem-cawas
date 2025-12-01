@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
         { maxZoom: 18 }
     );
 
-    // ❗ SIMPAN KE WINDOW SEGERA
     window.umkmMap = map;
     window.osmLayer = osm;
     window.satLayer = esriSat;
@@ -32,18 +31,17 @@ document.addEventListener("DOMContentLoaded", () => {
             // ❗ UPDATE: MENAMBAHKAN STYLE DASH & WARNA
             const layer = L.geoJSON(geo, {
                 style: {
-                    color: "#ffcc00",       // Warna garis tepi
-                    weight: 2,              // Ketebalan garis
-                    dashArray: '10, 10',    // Efek garis putus-putus (dash)
-                    fillColor: "#ffcc00",   // Warna isi
-                    fillOpacity: 0.2        // Opacity 0.2
+                    color: "#ffcc00",
+                    weight: 2,          
+                    dashArray: '10, 10',
+                    fillColor: "#ffcc00",  
+                    fillOpacity: 0.2       
                 }
             }).addTo(map);
 
             const bounds = layer.getBounds();
             map.fitBounds(bounds);
 
-            // ❗ UPDATE VARIABLE GLOBAL
             window.karangasemBounds = bounds; 
         })
         .catch(err => console.error("Gagal load batas desa:", err));

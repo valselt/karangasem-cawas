@@ -2,8 +2,6 @@
 header('Content-Type: application/json; charset=utf-8');
 include '../koneksi.php';
 
-// Get all UMKM
-// UPDATE: Menambahkan "AND diacc = 1" pada query
 $umkmSql = "SELECT id, nama_usaha, deskripsi_usaha, kategori_usaha, 
             nama_pemilik_usaha, kontak_usaha, alamat_usaha, 
             latitude, longitude, path_foto_usaha, qris, created_at,
@@ -23,7 +21,6 @@ if ($res) {
 
         $id = (int)$row['id'];
 
-        // Fetch produk
         $prodStmt = $conn->prepare(
             "SELECT id, nama_produk, harga_produk, deskripsi_produk, 
                     path_foto_produk, created_at 

@@ -122,19 +122,16 @@
 
           <div class="upload-gps-wrapper">
 
-            <!-- UPLOAD FILE (DESKTOP) -->
             <label for="bukti-foto" class="file-drop-area">
               <span class="material-symbols-rounded file-drop-icon">
                 upload_file
               </span>
 
-              <!-- wrapper teks -->
               <span class="file-drop-text-desktop">
                 Seret & lepas file Anda di sini, atau
                 <strong>klik untuk memilih file</strong>
               </span>
 
-              <!-- nama file DI DALAM kotak -->
               <span class="file-upload-filename"></span>
 
               <div class="upload-progress">
@@ -142,7 +139,6 @@
               </div>
             </label>
 
-            <!-- UPLOAD FILE (MOBILE) -->
             <label for="bukti-foto" class="file-button-mobile">
               <span class="material-symbols-rounded">add_photo_alternate</span>
               <span class="file-button-text-mobile">Upload Gambar</span>
@@ -152,7 +148,6 @@
               </div>
             </label>
 
-            <!-- GPS BUTTON -->
             <button type="button" id="ambil-gps" class="gps-btn">
               <span class="material-symbols-rounded">my_location</span>
             </button>
@@ -173,9 +168,6 @@
 
     <?php include '../footer.php'; ?>
 
-    <!-- ================================
-    POPUP SUKSES
-    ================================ -->
     <div id="popup-overlay"></div>
 
     <div id="popup-success">
@@ -188,9 +180,6 @@
         <button id="popup-close-btn">Kembali</button>
     </div>
 
-    <!-- ================================
-     POPUP WARNING (VALIDASI FORM)
-    ================================ -->
     <div id="popup-warning">
         <div class="popup-icon warning">
             <span class="material-symbols-rounded">warning</span>

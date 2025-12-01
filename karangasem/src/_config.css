@@ -39,25 +39,20 @@
 
 
 
-/* --- CSS BARU UNTUK FOOTER --- */
 
 .site-footer {
-  /* Ukuran: 1/5 dari viewport (20vh) */
   width: 100%;
 
-  /* Background Image */
   background-image: url('https://cdn.ivanaldorino.web.id/karangasem/websiteutama/footer.JPG');
-  background-size: cover;    /* Pastikan gambar menutupi area */
-  background-position: center; /* Posisikan gambar di tengah */
+  background-size: cover; 
+  background-position: center; 
   
-  /* (Opsional) Styling untuk teks di dalamnya */
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 0.9rem;
   
-  /* Hilangkan margin jika ada */
   margin: 0;
 }
 
@@ -77,8 +72,8 @@
     
 }
 .logo-footer img {
-  height: 60px; /* Ubah 50px ke ukuran yang Anda inginkan */
-  width: auto;  /* Ini penting agar rasio aspek logo tetap benar */
+  height: 60px;
+  width: auto;
 }
 
 .footer-1-2 img{
@@ -101,18 +96,14 @@
 }
 
 .footer-info img {
-  height: 20px; /* Atur ukuran yang Anda inginkan (misal: 20px) */
-  width: auto;  /* Pastikan rasio aspek tetap benar */
+  height: 20px; 
+  width: auto; 
   
-  /* Filter untuk mengubah warna SVG menjadi putih */
-  /* Ini adalah cara umum untuk mengubah warna SVG yang di-embed 
-     sebagai <img> menjadi putih. */
   filter: brightness(0) invert(1);
 }
 
-/* (Opsional) Sesuaikan juga ukuran font paragraf di footer jika perlu */
 .footer-info p {
-    font-size: 0.8rem; /* Contoh: kecilkan sedikit */
+    font-size: 0.8rem; 
 }
 
 .footer-2{
@@ -120,34 +111,26 @@
     flex-direction: column;
 }
 
-/* --- CSS BARU UNTUK NAVBAR --- */
 
-/* 1. STATE AWAL (DI ATAS SECTION-1) */
 .navbar {
-  /* Posisi menempel di atas */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000; /* Memastikan di atas segalanya */
+  z-index: 1000;
 
-  /* Layout awal: Logo di tengah */
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1.5rem; /* Beri jarak sedikit */
+  padding: 1.5rem;
 
-  /* Transisi mulus untuk semua perubahan */
   transition: all 0.4s ease-in-out;
 }
 
 .nav-logo {
-  /* Atur ukuran logo Anda di sini */
   height: 40px; 
-  /* TAMBAHAN: Buat 'position: relative' agar logo bisa ditumpuk */
   position: relative;
-  /* (Opsional) Tentukan lebar agar tidak 'goyang' saat ganti */
-  width: 150px; /* Ganti 150px dengan lebar logo Anda */
+  width: 150px;
   align-items: center;
   justify-content: center;
 }
@@ -156,32 +139,25 @@
   height: 100%;
   width: auto;
   
-  /* TAMBAHAN: Atur agar logo menumpuk */
   position: absolute;
   top: 0;
   
-  /* GANTI 'left: 0;' DENGAN 2 BARIS INI */
   left: 50%;
   transform: translateX(-50%);
   
-  /* TAMBAHAN: Beri transisi pada opacity */
   transition: opacity 0.4s ease-in-out, 
               left 0.4s ease-in-out, 
               transform 0.4s ease-in-out;
 }
 
-/* TAMBAHKAN RULE BARU INI */
-/* Ini akan mereset posisi logo kembali ke kiri saat di-scroll */
 .navbar.navbar-scrolled .nav-logo img {
   left: 0;
   transform: translateX(0);
 }
 
-/* Logo berwarna (state 2) disembunyikan di awal */
 .navbar .logo-color {
   display: none;
 }
-/* Tombol (state 2) disembunyikan di awal */
 .nav-buttons {
   display: none;
   gap: 0.5rem;
@@ -198,104 +174,72 @@
   border-radius: 1.25rem;
   color: rgb(0, 0, 0);
   
-  /* --- PERUBAHAN DI SINI --- */
-
-  /* 1. Ubah arah gradasi menjadi horizontal */
   background: linear-gradient(
-    to left, /* Arah dari kanan ke kiri */
-    #f9f9f9 50%,             /* Warna awal (sekarang di kanan) */
-    rgb(138, 138, 138) 50%  /* Warna hover (sekarang di kiri) */
+    to left,
+    #f9f9f9 50%,
+    rgb(138, 138, 138) 50%
   );
 
-  /* 2. Ubah ukuran menjadi 2x lebar */
   background-size: 200% 100%;
 
-  /* 3. Posisikan agar warna awal (#f9f9f9) yang terlihat */
-  background-position: 100% 0; /* Mulai dari paling kanan */
+  background-position: 100% 0;
 
-  /* 4. Transisi (sudah benar, hanya pastikan 'color' juga ada) */
   transition: background-position 0.4s ease-in,
               color 0.4s ease-in;
 }
 
 .navbar-button:hover {
-  color: white; /* Warna teks berubah */
+  color: white; 
   
-  /* 1. Geser background ke kiri untuk menunjukkan warna hover */
-  background-position: 0 0; /* Pindah ke paling kiri */
+
+  background-position: 0 0;
 }
 
-/* 2. STATE SAAT DI-SCROLL (Class 'navbar-scrolled' ditambahkan oleh JS) */
-/* 2. STATE SAAT DI-SCROLL (Class 'navbar-scrolled' ditambahkan oleh JS) */
+
 .navbar.navbar-scrolled {
-  /* Margin 1rem atas, kiri, kanan (sesuai permintaan) */
   top: 1rem;
   left: 1rem;
   right: 1rem;
-  width: calc(100% - 2rem); /* Lebar dikurangi margin kiri/kanan */
+  width: calc(100% - 2rem);
   
-  /* Layout (sesuai permintaan) */
   justify-content: space-between;
-  padding: 1rem 1.5rem; /* Padding internal */
-
-  /* --- PERUBAHAN ANDA DI SINI --- */
-  
-  /* 1. HAPUS backdrop-filter (blur) */
-  /* backdrop-filter: blur(10px); */
-  /* -webkit-backdrop-filter: blur(10px); */
-
-  /* 2. GANTI background-color menjadi putih-keabuan */
+  padding: 1rem 1.5rem;
   background-color: #e0dfdf; 
-
-  /* 3. TAMBAHKAN border tipis */
   border: 1px solid #e0e0e0;
-  
-  /* --- AKHIR PERUBAHAN --- */
-  
-  /* Style (tetap sama) */
   border-radius: 1rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-
-/* Tampilkan logo berwarna saat di-scroll */
 .navbar.navbar-scrolled .logo-color {
   display: block;
 }
-/* Sembunyikan logo putih saat di-scroll */
 .navbar.navbar-scrolled .logo-white {
   display: none;
 }
-/* Tampilkan tombol saat di-scroll */
 .navbar.navbar-scrolled .nav-buttons {
   display: flex;
 }
 
 .hamburger-menu {
-  display: none; /* Sembunyikan hamburger di desktop */
+  display: none; 
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  line-height: 0; /* Rapikan posisi ikon */
-  z-index: 1001; /* Pastikan di atas menu dropdown */
+  line-height: 0;
+  z-index: 1001;
 }
-
-/* Sembunyikan ikon 'close' di awal */
 .hamburger-menu .icon-close {
   display: none;
 }
 
 
-/* --- LIQUID GLASS --- */
-
-/* 1. CSS EFEK LIQUID GLASS (DARI CONTOH ANDA) */
 .liquidGlass-effect {
   position: absolute;
   z-index: 0;
-  inset: 0; /* Mengisi seluruh parent */
+  inset: 0;
   
   backdrop-filter: blur(2px);
-  filter: url(#glass-distortion); /* Memanggil SVG dari HTML */
+  filter: url(#glass-distortion);
   
   overflow: hidden;
   isolation: isolate;
@@ -305,7 +249,7 @@
   z-index: 1;
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.15); /* Warna kaca */
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .liquidGlass-shine {
@@ -314,33 +258,26 @@
   z-index: 2;
   overflow: hidden;
   
-  /* Garis tepi kaca dari contoh */
   box-shadow: inset 2px 2px 1px 0 rgba(255, 255, 255, 0.5),
     inset -1px -1px 1px 1px rgba(255, 255, 255, 0.5);
 }
 
-/* 2. PEMBUNGKUS TEKS */
 .liquidGlass-text {
-  z-index: 3; /* Paling depan */
-  position: relative; /* Pastikan z-index berfungsi */
-  color: white; /* Anda sudah mengatur ini di .section-1 */
-
+  z-index: 3;
+  position: relative;
+  color: white;
   display: flex;
   flex-direction: row;
   gap: 0.4rem;
 }
 
-/* 3. (PENTING) AGAR LAPISAN EFEK MENGIKUTI BORDER-RADIUS */
+
 .button-landingpage > div {
-   /* Ini menargetkan: .liquidGlass-effect, .liquidGlass-tint, 
-     .liquidGlass-shine, dan .liquidGlass-text
-   */
-   border-radius: 0.5rem; /* Samakan dengan border-radius parent */
+   border-radius: 0.5rem;
 }
 
-/* 4. (PENTING) MEMBERSIHKAN MARGIN BAWAAN <p> */
 .button-landingpage .liquidGlass-text p {
-    margin: 0; /* Hapus margin default agar pas */
+    margin: 0;
 }
 
 @media (max-width: 768px) {
@@ -353,26 +290,20 @@
         width: 100%;
     }
     .navbar {
-    /* Logo di kiri, hamburger di kanan */
     justify-content: space-between;
   }
 
-  /* 2. Tampilkan tombol hamburger */
   .hamburger-menu {
     display: block;
     font-size: 2.2rem;
-    color: white; /* Warna awal di atas video */
-    /* Baris margin-right: 1.5rem; sudah dihapus */
+    color: white;
   }
   
-  /* 3. Atur warna hamburger saat di-scroll (dan menu TERTUTUP) */
   .navbar.navbar-scrolled:not(.nav-open) .hamburger-menu {
-    color: #333; /* Warna gelap di background putih */
+    color: #333;
   }
 
-  /* 4. Atur ulang .nav-buttons menjadi menu dropdown */
   .nav-buttons {
-    /* Ubah jadi menu fullscreen */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -384,26 +315,19 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #f5f5f5; /* Background putih solid */
+    background-color: #f5f5f5;
 
-    /* Sembunyikan menu di awal */
     opacity: 0;
     visibility: hidden;
     transform: translateY(-20px);
     transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
-    
-    /* Pastikan di bawah hamburger, tapi di atas konten */
     z-index: 1000;
   }
-  
-  /* 5. Tampilkan menu saat .nav-open aktif */
   .navbar.nav-open .nav-buttons {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
   }
-
-  /* 6. Atur tombol di dalam menu dropdown */
   .nav-buttons a {
     background: #e5eaf1;
     color: #333;
@@ -412,8 +336,6 @@
     width: 80%;
     text-align: center;
     border-radius: 1rem;
-    
-    /* Reset transisi hover dari desktop */
     background-position: 0 0; 
     transition: background-color 0.3s ease, color 0.3s ease;
   }
@@ -422,14 +344,12 @@
     background-color: #e0e0e0;
     color: #333;
   }
-
-  /* 7. Tukar ikon saat menu terbuka */
   .navbar.nav-open .hamburger-menu .icon-menu {
-    display: none; /* Sembunyikan 'menu' */
+    display: none;
   }
   .navbar.nav-open .hamburger-menu .icon-close {
-    display: block; /* Tampilkan 'close' */
-    color: #333; /* Pastikan ikon 'close' terlihat */
+    display: block;
+    color: #333;
   }
   .nav-logo img {
     left: 0;

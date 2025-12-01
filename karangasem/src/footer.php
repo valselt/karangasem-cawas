@@ -5,7 +5,7 @@
         <div class="logo-footer">
             <img src="https://cdn.ivanaldorino.web.id/karangasem/websiteutama/karangasem-white.png"/>
         </div>
-        <p>Crafted With ❤️ By Muhammad Ivan Aldorino, Nurfajar Pancaraksa Andharesta and all member of GIAT 13 UNNES Karangasem.</p>
+        <p>Crafted With ❤️ By Muhammad Ivan Aldorino and all member of GIAT 13 UNNES Karangasem.</p>
         </div>
     </div>
     <div class="footer-2">

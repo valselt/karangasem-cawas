@@ -9,31 +9,28 @@
   margin: 7rem 1.5rem;
 }
 
-/* ===============================================
-  CSS UNTUK HEADER & LOGO FULL-WIDTH
-===============================================
-*/
+
 
 .header-lapor {
-  /* Pastikan container header juga mengambil lebar penuh */
+ 
   width: 100%;
-  /* Hapus padding/margin yang mungkin ada */
+ 
   margin: 0;
   padding: 0;
-  /* (Opsional) Jika ada elemen lain di header, bisa diatur alignment-nya */
+ 
   display: flex;
-  justify-content: center; /* Untuk menengahkan jika gambar tidak 100% lebar */
+  justify-content: center;
   align-items: center;
 }
 
 .header-lapor img {
-  /* Ini yang paling penting: membuat gambar memenuhi lebar */
+ 
 
-  /* (Opsional) Pastikan gambar tidak melebihi tinggi alaminya */
+ 
   width: 100%;
   height: auto;
 
-  /* (Opsional) Agar gambar tidak ada jarak kosong di bawahnya */
+ 
   display: block;
   object-fit: cover;
   border-radius: 1rem;
@@ -67,18 +64,18 @@
 }
 
 .last-ticket-box {
-  display: none; /* Default sembunyi (JS akan ubah jadi flex) */
+  display: none;
 
-  /* === POSISI DI KIRI (FLEX START) === */
+ 
   width: fit-content;
   max-width: 95%;
 
-  /* HAPUS 'auto' di kiri-kanan agar tidak tengah */
+ 
   margin: 1rem 0;
 
-  /* Tambahkan ini untuk memaksa ke kiri jika parent-nya flex column */
+ 
   align-self: flex-start;
-  /* =================================== */
+ 
 
   flex-direction: row;
   align-items: center;
@@ -100,7 +97,7 @@
   font-size: 1.1rem;
   color: #1565c0;
   margin: 0;
-  letter-spacing: 1px; /* Sedikit renggang agar mudah dibaca */
+  letter-spacing: 1px;
 }
 
 @keyframes fadeIn {
@@ -114,7 +111,7 @@
   }
 }
 
-/* TOMBOL COPY */
+
 .btn-copy-ticket {
   background: none;
   border: none;
@@ -134,7 +131,7 @@
 }
 
 .btn-copy-ticket span {
-  font-size: 1.2rem; /* Ukuran icon */
+  font-size: 1.2rem;
 }
 
 .info-lapor {
@@ -142,7 +139,7 @@
   margin-top: 1rem;
 }
 
-/* 2. Styling untuk "Box" (input, textarea, select) */
+
 .info-lapor input,
 .info-lapor textarea,
 .info-lapor select {
@@ -154,20 +151,20 @@
   padding: 1.25rem 1rem 0.75rem;
   color: #333;
 
-  /* === TAMBAHAN FONT BARU UNTUK TEKS DI DALAM INPUT === */
+ 
   font-family: "Stack Sans Headline", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
-  font-weight: 500; /* "Tebalkan sedikit" (medium) */
-  font-size: 1rem; /* Pastikan font-size tetap ada */
+  font-weight: 500;
+  font-size: 1rem;
 }
 
-/* Khusus untuk file input, beri sedikit ruang */
+
 .info-lapor input[type="file"] {
   padding-top: 1.5rem;
 }
 
-/* 3. Styling untuk Label */
+
 .info-lapor label {
   position: absolute;
   left: 1rem;
@@ -176,44 +173,40 @@
   transition: all 0.2s ease-out;
   pointer-events: none;
 
-  /* === TAMBAHAN FONT BARU UNTUK LABEL === */
+ 
   font-family: "Stack Sans Headline", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
-  font-weight: 500; /* "Tebalkan sedikit" (medium) */
+  font-weight: 500;
 
-  /* Ukuran font akan di-override oleh :focus, tapi kita set di sini */
+ 
   font-size: 1rem;
 }
 
-/* 4. Bagian "Ajaib" (Floating Animation) */
 
-/* Saat input di-klik (:focus) ATAU input sudah terisi (:not(:placeholder-shown))
-   maka ubah styling label ( + label ) yang berada TEPAT SETELAHNYA.
-*/
+
+
 .info-lapor input:focus + label,
 .info-lapor input:not(:placeholder-shown) + label,
 .info-lapor textarea:focus + label,
 .info-lapor textarea:not(:placeholder-shown) + label,
 .info-lapor select:focus + label {
-  /* Pindahkan label ke atas */
+ 
   top: 0.4rem;
-  /* Kecilkan font-nya */
+ 
   font-size: 0.75rem;
-  /* Ubah warna agar lebih terlihat (opsional, tapi disarankan) */
+ 
   color: #555;
 }
 
-/* Perlakuan khusus untuk <select> 
-   Label harus tetap di atas setelah nilai dipilih
-*/
+
 .info-lapor select:valid + label {
   top: 0.4rem;
   font-size: 0.75rem;
   color: #555;
 }
 
-/* REKOMENDASI: Versi dengan Kontras yang Baik */
+
 
 button[type="submit"] {
   background-color: #91d0ff;
@@ -222,9 +215,9 @@ button[type="submit"] {
   border: none;
   cursor: pointer;
 
-  /* === PERUBAHAN DI SINI === */
-  color: #333333; /* Jauh lebih mudah dibaca! */
-  /* ======================= */
+ 
+  color: #333333;
+ 
 
   font-family: "Stack Sans Headline", sans-serif;
   font-optical-sizing: auto;
@@ -238,89 +231,73 @@ button[type="submit"]:hover {
   background-color: #7bbdee;
 }
 
-/* ===============================================
-  STYLING MODERN UNTUK INPUT FILE
-===============================================
-*/
 
-/* 1. Target HANYA tombol "Pilih File".
-     Kita akan membuatnya mirip tombol "Kirim Pesan"
-*/
+
+
 .info-lapor input[type="file"]::file-selector-button {
-  /* Ambil gaya dari tombol biru Anda */
+ 
   background-color: #91d0ff;
-  color: #333; /* Teks gelap agar terbaca */
+  color: #333;
   border: none;
   cursor: pointer;
 
-  /* Buat lebih kecil & bulat */
+ 
   padding: 0.5rem 1rem;
-  border-radius: 1rem; /* Radius yang pas */
-  margin-right: 1rem; /* Beri jarak ke teks "Tidak ada file..." */
+  border-radius: 1rem;
+  margin-right: 1rem;
 
-  /* Pakai font yang konsisten */
+ 
   font-family: "Stack Sans Headline", sans-serif;
   font-weight: 500;
-  font-size: 0.875rem; /* Sedikit lebih kecil */
+  font-size: 0.875rem;
 
-  /* Transisi hover */
+ 
   transition: background-color 0.2s ease;
 }
 
-/* Efek hover untuk tombol file */
+
 .info-lapor input[type="file"]::file-selector-button:hover {
-  background-color: #7bbdee; /* Warna hover Anda */
+  background-color: #7bbdee;
 }
 
-/* 2. Sesuaikan 'padding-top' pada input file
-     agar tombol baru kita tidak menabrak label.
-     (Gantikan .info-lapor input[type='file'] yang lama jika ada)
-*/
+
 .info-lapor input[type="file"] {
-  padding-top: 1.35rem; /* Sedikit penyesuaian dari 1.5rem */
-  padding-left: 0.75rem; /* Beri ruang di kiri untuk tombol */
+  padding-top: 1.35rem;
+  padding-left: 0.75rem;
 }
 
-/* 3. Pastikan teks "Tidak ada file yang dipilih" 
-     juga menggunakan font yang benar.
-     (Cukup pastikan blok ini sudah ada dari langkah sebelumnya)
-*/
+
 .info-lapor input,
 .info-lapor textarea,
 .info-lapor select {
-  /* ... (gaya background, border, dll Anda yang sudah ada) ... */
+ 
 
-  /* Pastikan gaya font ini ada */
+ 
   font-family: "Stack Sans Headline", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
   font-weight: 500;
   font-size: 1rem;
-  color: #333; /* Pastikan warna teks input terlihat */
+  color: #333;
 }
 
-/* ===============================
-   UPLOAD + GPS BUTTON SIDE BY SIDE
-================================= */
+
 
 .upload-gps-wrapper {
   display: grid;
-  grid-template-columns: 1fr auto; /* kiri upload, kanan gps */
+  grid-template-columns: 1fr auto;
   align-items: stretch;
   gap: 1rem;
   margin-top: 1rem;
 }
 
-/* ===============================================
-  STYLING UPLOAD FILE (DESKTOP & MOBILE)
-===============================================
-*/
 
-/* --- (A) GAYA DESKTOP (Drop Zone) --- */
-/* Ini sebagian besar sama seperti sebelumnya */
+
+
+
 .file-drop-area {
   position: relative;
-  display: flex; /* Akan di-override oleh media query */
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -349,19 +326,19 @@ button[type="submit"]:hover {
   text-align: center;
 }
 
-/* --- (B) GAYA MOBILE (Tombol "Upload Gambar") --- */
-/* Ini adalah tombol baru yang Anda inginkan */
+
+
 .file-button-mobile {
-  display: none; /* Akan di-override oleh media query */
+  display: none;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem; /* Jarak antara ikon dan teks */
+  gap: 0.5rem;
   width: 100%;
   box-sizing: border-box;
 
-  /* Mengambil gaya dari tombol "Kirim Pesan" Anda */
+ 
   background-color: #91d0ff;
-  color: #333; /* Gunakan teks gelap agar terbaca */
+  color: #333;
   padding: 1rem 2rem;
   border-radius: 1rem;
   border: none;
@@ -376,47 +353,37 @@ button[type="submit"]:hover {
   background-color: #7bbdee;
 }
 
-/* --- (C) GAYA NAMA FILE (Shared) --- */
+
 .file-upload-filename {
   margin-top: 0.5rem;
   font-family: "Stack Sans Headline", sans-serif;
   font-weight: 500;
   color: #333;
   font-size: 0.95rem;
-  display: none; /* default: tidak tampil */
+  display: none;
 }
 
-/* --- (D) MEDIA QUERIES (Bagian Ajaibnya) --- */
-/* Aturan default: Tampilkan Tombol (Mobile First)
-  Kita anggap layar kecil adalah default
-*/
+
+
 .file-drop-area {
-  display: none; /* Sembunyikan drop-zone di HP */
+  display: none;
 }
 .file-button-mobile {
-  display: inline-flex; /* Tampilkan tombol di HP */
+  display: inline-flex;
 }
 
-/* ===============================================
-  CSS UNTUK TANDA BINTANG "WAJIB DIISI"
-===============================================
-*/
 
-/* Target semua 'label' di dalam .info-lapor
-  yang berada TEPAT SETELAH (tanda +) elemen
-  input, select, atau textarea yang 'required'.
-*/
+
+
 .info-lapor input[required] + label::after,
 .info-lapor select[required] + label::after,
 .info-lapor textarea[required] + label::after {
-  content: " *"; /* Tanda spasi dan bintang */
-  color: #d93025; /* Warna merah (Google Error Red) */
-  font-weight: 700; /* Tebalkan bintangnya */
+  content: " *";
+  color: #d93025;
+  font-weight: 700;
 }
 
-/* Target khusus untuk teks 'Upload Gambar'
-  di versi desktop dan mobile.
-*/
+
 .file-drop-text-desktop strong::after,
 .file-button-text-mobile::after {
   content: " *";
@@ -424,7 +391,7 @@ button[type="submit"]:hover {
   font-weight: 700;
 }
 
-/* ====== GPS BUTTON ====== */
+
 
 .gps-container {
   margin-top: 1rem;
@@ -438,9 +405,9 @@ button[type="submit"]:hover {
   align-items: center;
   justify-content: center;
 
-  aspect-ratio: 1 / 1; /* PERSEGI */
-  height: 100%; /* ikut tinggi upload */
-  width: 100%; /* square */
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  width: 100%;
 
   background-color: #f9f9f9;
   border: 1px solid #e5eaf1;
@@ -455,7 +422,7 @@ button[type="submit"]:hover {
   font-size: 2rem;
 }
 
-/* Saat lokasi berhasil diambil */
+
 .gps-btn.active {
   background-color: #62944f;
   border: 1px solid #b0d6a1;
@@ -468,9 +435,7 @@ button[type="submit"]:hover {
   gap: 0.25rem;
 }
 
-/* ==========================
-   PROGRESS BAR UPLOAD
-========================== */
+
 
 .upload-progress {
   width: 100%;
@@ -479,7 +444,7 @@ button[type="submit"]:hover {
   border-radius: 10px;
   overflow: hidden;
   margin-top: 1rem;
-  display: none; /* default tersembunyi */
+  display: none;
 }
 
 .upload-progress-bar {
@@ -489,14 +454,12 @@ button[type="submit"]:hover {
   transition: width 0.15s ease;
 }
 
-/* Progress bar mobile */
+
 .mobile-progress {
   margin-top: 0.5rem;
 }
 
-/* ===========================================
-   POPUP SUKSES
-=========================================== */
+
 
 #popup-overlay {
   position: fixed;
@@ -506,7 +469,7 @@ button[type="submit"]:hover {
   height: 100%;
   background: rgba(0, 0, 0, 0.6);
   z-index: 2;
-  display: none; /* default tersembunyi */
+  display: none;
 }
 
 #popup-success {
@@ -565,9 +528,7 @@ button[type="submit"]:hover {
   background-color: #7bbdee;
 }
 
-/* ===========================================
-   POPUP WARNING (VALIDASI FORM)
-=========================================== */
+
 
 #popup-warning {
   position: fixed;
@@ -597,7 +558,7 @@ button[type="submit"]:hover {
 
 .popup-icon.warning span {
   font-size: 4rem;
-  color: #d93025; /* merah */
+  color: #d93025;
 }
 
 #popup-warning h2 {
@@ -608,7 +569,7 @@ button[type="submit"]:hover {
   color: #333;
 }
 
-/* Tombol merah */
+
 #popup-warning-btn {
   background-color: #d93025;
   color: white;
@@ -626,15 +587,15 @@ button[type="submit"]:hover {
   background-color: #b3251f;
 }
 
-/* Pastikan tombol memiliki posisi relative agar bintang bisa diposisikan */
+
 .gps-btn {
   position: relative;
 }
 
-/* Membuat Bintang Merah di Pojok Tombol */
+
 .gps-btn::after {
   content: "*";
-  color: #d93025; /* Warna merah */
+  color: #d93025;
   font-weight: 700;
   font-size: 1.2rem;
 
@@ -642,17 +603,15 @@ button[type="submit"]:hover {
   top: 2px;
   right: 6px;
 
-  pointer-events: none; /* Agar klik tetap tembus ke tombol */
+  pointer-events: none;
 }
 
-/* Opsi Tambahan: Hilangkan bintang jika GPS sudah ditemukan (tombol jadi hijau) */
+
 .gps-btn.active::after {
   display: none;
 }
 
-/* =========================================
-   POPUP CEK TIKET (INPUT & RESULT)
-========================================= */
+
 .popup-input-container {
     position: fixed;
     top: 50%;
@@ -683,7 +642,7 @@ button[type="submit"]:hover {
     color: #333;
 }
 
-/* Input Ticket Style */
+
 .input-ticket-box {
     width: 100%;
     padding: 12px;
@@ -708,23 +667,21 @@ button[type="submit"]:hover {
 }
 .btn-check-ticket:hover { background: #7bbdee; }
 
-/* Timeline Container Scrollable */
+
 .timeline-scroll-area {
     max-height: 60vh;
     overflow-y: auto;
     padding-right: 5px;
 }
 
-/* =========================================
-   TIMELINE CSS (DARI REQUEST ANDA)
-========================================= */
+
 .timeline {
   position: relative;
   margin: 20px 0;
   padding-left: 50px;
 }
 
-/* Animasi FlowUp untuk garis */
+
 @keyframes flowUp {
   0% { background-position: 0 0; }
   100% { background-position: 0 -12px; }
@@ -735,7 +692,7 @@ button[type="submit"]:hover {
   position: absolute;
   top: 15px;
   bottom: 0;
-  left: 19px;     /* Axis Tengah (20px) */
+  left: 19px;    
   width: 2px;
   background-image: linear-gradient(to bottom, #dcdcdc 50%, rgba(255,255,255,0) 0%);
   background-size: 2px 12px; 
@@ -766,7 +723,7 @@ button[type="submit"]:hover {
 .timeline-item::before {
   content: '';
   position: absolute;
-  left: -39px;    /* Posisi presisi di tengah garis */
+  left: -39px;   
   top: 5px;
   width: 12px;
   height: 12px;
@@ -777,7 +734,7 @@ button[type="submit"]:hover {
   z-index: 2;
 }
 
-/* --- STYLE KHUSUS ITEM TERBARU (HIJAU) --- */
+
 .timeline-item:first-child::before {
   background: #2ecc71; 
   border-color: #2ecc71; 
@@ -791,7 +748,7 @@ button[type="submit"]:hover {
   background: #e8f8f5; 
 }
 
-/* CONTENT STYLE */
+
 .timeline-header {
   display: flex;
   justify-content: space-between;
@@ -819,19 +776,19 @@ button[type="submit"]:hover {
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-/* Warna Status */
+
 .t-status-menunggu .timeline-body { border-left: 4px solid #3498db; }
 .t-status-diproses .timeline-body { border-left: 4px solid #f1c40f; }
 .t-status-selesai .timeline-body { border-left: 4px solid #2ecc71; }
 .t-status-ditolak .timeline-body { border-left: 4px solid #e74c3c; }
 
-/* Warna Dot Status selain first-child */
+
 .timeline-item:not(:first-child).t-status-menunggu::before { border-color: #3498db; background: #3498db; }
 .timeline-item:not(:first-child).t-status-diproses::before { border-color: #f1c40f; background: #f1c40f; }
 .timeline-item:not(:first-child).t-status-selesai::before { border-color: #2ecc71; background: #2ecc71; }
 .timeline-item:not(:first-child).t-status-ditolak::before { border-color: #e74c3c; background: #e74c3c; }
 
-/* Aturan untuk layar besar (Desktop) */
+
 @media (min-width: 769px) {
   .header-lapor img {
     width: 100%;
@@ -842,10 +799,10 @@ button[type="submit"]:hover {
     border-radius: 2rem;
   }
   .file-drop-area {
-    display: flex; /* Tampilkan drop-zone di Desktop */
+    display: flex;
   }
   .file-button-mobile {
-    display: none; /* Sembunyikan tombol di Desktop */
+    display: none;
   }
 
   .header-lapor img {
@@ -857,6 +814,6 @@ button[type="submit"]:hover {
   }
 
   .file-button-mobile {
-    width: 100%; /* upload tombol mobile tetap full */
+    width: 100%;
   }
 }

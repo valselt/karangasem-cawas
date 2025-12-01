@@ -1,11 +1,10 @@
 <?php
-// cek-laporan.php
-require '../koneksi.php'; // Sesuaikan path koneksi Anda
+
+require '../koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ticket = $_POST['ticket'] ?? '';
 
-    // 1. Cek Laporan Utama
     $stmt = $conn->prepare("SELECT * FROM laporandesa WHERE ticket = ?");
     $stmt->bind_param("s", $ticket);
     $stmt->execute();
@@ -20,8 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $idLaporan = $laporan['id'];
 
-    // 2. Ambil Riwayat Tanggapan (Join dengan Users untuk dapat nama penanggap)
-    // Diurutkan DESC (Terbaru diatas)
     $stmt2 = $conn->prepare("
         SELECT r.*, u.nama_lengkap, u.level 
         FROM riwayat_tanggapan r 
@@ -33,16 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt2->execute();
     $riwayat = $stmt2->get_result();
 
-    // 3. Render HTML Timeline
     echo '<div class="timeline">';
 
-    // A. Loop Riwayat Tanggapan (Terbaru)
     while ($row = $riwayat->fetch_assoc()) {
-        $statusClass = 't-status-' . $row['status_laporan']; // mapping class css
+        $statusClass = 't-status-' . $row['status_laporan'];
         $tanggal = date('d M Y, H:i', strtotime($row['created_at']));
         $penanggap = $row['nama_lengkap'] ?? 'Sistem';
         
-        // Tentukan Label Penanggap
         $badgeRole = '';
         if($row['level'] == 'rw') $badgeRole = '(Ketua RW)';
         if($row['level'] == 'perangkat_desa') $badgeRole = '(Admin Desa)';
@@ -61,8 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>";
     }
 
-    // B. Tampilkan Laporan Awal (Paling Bawah / Awal Mula)
-    // Item terakhir (paling lama) adalah laporan warga itu sendiri
     $tanggalLapor = date('d M Y, H:i', strtotime($laporan['created_at']));
     echo "
         <div class='timeline-item'>
@@ -80,6 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     ";
 
-    echo '</div>'; // End .timeline
+    echo '</div>';
 }
 ?>

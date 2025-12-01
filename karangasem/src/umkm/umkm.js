@@ -1,7 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // ============================================================
-    // FUNGSI PEMBANTU: MENUNGGU PETA SIAP
-    // ============================================================
     function waitForMap(callback) {
         if (window.umkmMap && window.osmLayer && window.satLayer) {
             callback();
@@ -10,15 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // JALANKAN LOGIKA UTAMA SETELAH PETA SIAP
     waitForMap(() => {
         const map = window.umkmMap;
         const osm = window.osmLayer;
         const esriSat = window.satLayer;
 
-        // ===========================
-        // 1. HELPER ICON
-        // ===========================
         function createMarkerIcon(iconName) {
             return L.divIcon({
                 className: "material-marker",
@@ -32,11 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // ===========================
-        // 2. LOGIKA UPDATE INFO PANEL (INTI PERMINTAAN ANDA)
-        // ===========================
         function updateInfoPanel(data) {
-            // A. Update Nama & Kontak
+
             document.getElementById('u-nama').textContent = data.nama_usaha;
             document.getElementById('u-kontak').innerHTML = `<span class="material-symbols-rounded">call</span><p>${data.kontak_usaha || '-'}</p>`;
             document.getElementById('u-kontak').href = `tel:${data.kontak_usaha}`;
@@ -46,12 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 elAlamat.textContent = data.alamat_usaha || '-'; 
             }
 
-            // ==========================================
-            // 1. LOGIKA WHATSAPP
-            // ==========================================
             const btnWa = document.getElementById('u-wa');
             
-            // Pastikan konversi ke integer agar aman
             const punyaWa = parseInt(data.punya_whatsapp);
             const waSama  = parseInt(data.no_wa_apakahsama);
 
@@ -59,39 +45,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 let nomorWaFinal = "";
 
                 if (waSama === 1) {
-                    // a. Jika sama, ambil dari kontak_usaha
                     nomorWaFinal = data.kontak_usaha;
                 } else {
-                    // b. Jika beda, ambil dari no_wa_berbeda
                     nomorWaFinal = data.no_wa_berbeda;
                 }
 
-                // PEMBERSIHAN NOMOR (Penting untuk Link WA)
-                // Menghapus karakter selain angka
                 if (nomorWaFinal) {
                     nomorWaFinal = nomorWaFinal.replace(/\D/g, ''); 
                     
-                    // Jika diawali '0', hapus '0' depannya agar jadi 628xxx
                     if (nomorWaFinal.startsWith('0')) {
                         nomorWaFinal = nomorWaFinal.substring(1);
                     }
-                    // Jika user tidak sengaja sudah input 62 di database, biarkan
                 }
 
                 btnWa.href = `https://wa.me/62${nomorWaFinal}`;
-                btnWa.style.display = 'flex'; // Tampilkan tombol
+                btnWa.style.display = 'flex';
             } else {
-                btnWa.style.display = 'none'; // Sembunyikan tombol
+                btnWa.style.display = 'none';
             }
 
-            // ==========================================
-            // 2. LOGIKA INSTAGRAM
-            // ==========================================
             const btnIg = document.getElementById('u-ig');
             const punyaIg = parseInt(data.punya_instagram);
 
             if (punyaIg === 1 && data.username_instagram) {
-                // Hapus @ jika user tidak sengaja menginputnya
                 const cleanUser = data.username_instagram.replace('@', '');
                 
                 btnIg.href = `https://instagram.com/${cleanUser}`;
@@ -100,14 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 btnIg.style.display = 'none';
             }
             
-            // ==========================================
-            // 3. LOGIKA FACEBOOK
-            // ==========================================
             const btnFb = document.getElementById('u-fb');
-            // Ambil data link_facebook dari database
             const linkFb = data.link_facebook; 
 
-            // Cek apakah datanya ada dan tidak kosong
             if (linkFb && linkFb.trim() !== "") {
                 btnFb.href = linkFb;
                 btnFb.style.display = 'flex';
@@ -115,11 +86,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 btnFb.style.display = 'none';
             }
 
-            // B. Update Tombol Arah
             const btnDir = document.getElementById('u-direction');
             btnDir.href = `https://www.google.com/maps/dir/?api=1&destination=${data.latitude},${data.longitude}`;
             
-            // C. Update Foto Utama
             const imgFoto = document.getElementById('u-foto');
             if (data.path_foto_usaha) {
                 imgFoto.src = data.path_foto_usaha;
@@ -128,7 +97,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 imgFoto.style.display = 'none';
             }
 
-            // D. LOGIKA KATEGORI (Sesuai Permintaan)
             const divKat = document.getElementById('u-kategori');
             let katHTML = '';
             
@@ -142,35 +110,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span class="material-symbols-rounded">yakitori</span>
                     <p>Pedagang Kaki Lima</p>
                 `;
-            } else if (data.kategori_usaha === 'pengrajin') { // Asumsi 'pengrajin' untuk carpenter
+            } else if (data.kategori_usaha === 'pengrajin') {
                 katHTML = `
                     <span class="material-symbols-rounded">carpenter</span>
                     <p>Pengrajin</p>
                 `;
             } else {
-                // Default jika ada kategori lain
                 katHTML = `<span class="material-symbols-rounded">storefront</span><p>${data.kategori_usaha}</p>`;
             }
             divKat.innerHTML = katHTML;
 
 
-            // E. LOGIKA QRIS (Sesuai Permintaan)
             const divQris = document.getElementById('u-qris');
             let qrisHTML = '<p>QRIS</p>';
 
             if (parseInt(data.qris) === 1) {
-                // Hijau check_small
                 qrisHTML += `<span class="material-symbols-rounded" style="color: #2ecc71; font-weight:bold;">check</span>`;
             } else {
-                // Merah close (close_small jarang didukung font standar, pakai close)
                 qrisHTML += `<span class="material-symbols-rounded" style="color: #e74c3c; font-weight:bold;">close</span>`;
             }
             divQris.innerHTML = qrisHTML;
 
 
-           // F. LOGIKA PRODUK (Looping umkmproduk)
             const divProduk = document.getElementById('u-produk');
-            divProduk.innerHTML = ''; // Kosongkan dulu
+            divProduk.innerHTML = '';
 
             if (data.produk && data.produk.length > 0) {
                 data.produk.forEach(prod => {
@@ -190,10 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-
-        // ===========================
-        // 3. TOMBOL LOKASI SAYA
-        // ===========================
         const locateBtn = document.getElementById("locateUserBtn");
         let userMarker = null;
         let userCircle = null;
@@ -240,9 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
             map.once("locationerror", onLocationError);
         });
 
-        // ===========================
-        // 4. RESET MAP & SATELLITE
-        // ===========================
         document.getElementById("resetMapUmkm").addEventListener("click", () => {
             if (window.karangasemBounds) {
                 map.fitBounds(window.karangasemBounds, { animate: true });
@@ -269,9 +225,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // ===========================
-        // 5. LOAD DATA UMKM
-        // ===========================
         const categoryIcon = {
             warung: "store",
             pedagangkakilima: "yakitori",
@@ -291,18 +244,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     marker.umkmData = u;
                     
-                    // ❗ UPDATE DI SINI ❗
                     marker.on("click", () => {
-                        // 1. Update Info Panel (Fungsi yang sudah ada)
                         updateInfoPanel(u);
 
-                        // 2. Logika Scroll Otomatis (Hanya di HP)
                         if (window.innerWidth <= 768) {
-                            // Beri sedikit jeda (100ms) agar terasa natural setelah klik
                             setTimeout(() => {
                                 document.getElementById("info-umkm").scrollIntoView({ 
-                                    behavior: 'smooth', // Gerakan halus
-                                    block: 'start'      // Scroll ke bagian atas elemen
+                                    behavior: 'smooth', 
+                                    block: 'start'      
                                 });
                             }, 100);
                         }
@@ -313,9 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch((err) => console.error("Gagal load UMKM:", err));
 
-        // ===========================
-        // 6. SEARCH FILTER
-        // ===========================
         const searchInput = document.getElementById("searchUmkm");
         const clearSearch = document.getElementById("clearSearch");
         

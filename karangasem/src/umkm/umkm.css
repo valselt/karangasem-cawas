@@ -25,17 +25,15 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: stretch; /* Agar tinggi Map dan Info sama (opsional, bisa ganti flex-start) */
-  gap: 1.5rem; /* Jarak antara Peta dan Info */
+  align-items: stretch;
+  gap: 1.5rem;
 }
 
-/* =======================
-   MAP WRAPPER
-======================= */
+
 #umkmMap {
-  width: 60%;         /* Lebar 60% */
-  flex-shrink: 0;     /* Jangan mengecil biarpun layar sempit */
-  aspect-ratio: 16 / 9; /* SAYA SARANKAN GANTI 16/6 JADI 16/9 AGAR LEBIH TINGGI DIKIT */
+  width: 60%;
+  flex-shrink: 0;
+  aspect-ratio: 16 / 9;
   border-radius: 2rem;
   overflow: hidden;
   position: relative;
@@ -53,9 +51,7 @@
   z-index: 999;
 }
 
-/* =======================
-   LIQUID GLASS BUTTON
-======================= */
+
 .toggle-map-btn {
   width: 48px;
   height: 48px;
@@ -79,7 +75,7 @@
     0 18px 30px rgba(255,255,255,0.1);
 }
 
-/* Liquid Glass Effects */
+
 .toggle-map-btn > .liquidGlass-effect,
 .toggle-map-btn > .liquidGlass-tint,
 .toggle-map-btn > .liquidGlass-shine,
@@ -90,7 +86,6 @@
   pointer-events: none;
 }
 
-/* blur */
 .toggle-map-btn > .liquidGlass-effect {
   backdrop-filter: blur(6px) saturate(140%);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
@@ -100,7 +95,6 @@
   isolation: isolate;
 }
 
-/* tint */
 .toggle-map-btn > .liquidGlass-tint {
   background: linear-gradient(
       135deg,
@@ -110,7 +104,6 @@
   z-index: 1;
 }
 
-/* shine */
 .toggle-map-btn > .liquidGlass-shine {
   box-shadow:
     inset 2px 2px 2px rgba(255,255,255,0.6),
@@ -119,7 +112,6 @@
   mix-blend-mode: screen;
 }
 
-/* text/icon wrapper */
 .toggle-map-btn > .liquidGlass-text {
   display: flex;
   align-items: center;
@@ -134,13 +126,11 @@
   filter: drop-shadow(0 1px 0 rgba(255,255,255,0.2));
 }
 
-/* Active (satellite ON) */
 .toggle-map-btn.active .material-symbols-rounded {
   color: white !important;
   filter: drop-shadow(0 0 4px rgba(0,0,0,0.5));
 }
 
-/* Group effect juga berubah */
 .umkm-toggle.satellite-on #resetMapUmkm .material-symbols-rounded {
   color: white !important;
   filter: drop-shadow(0 0 4px rgba(0,0,0,0.5));
@@ -180,9 +170,7 @@
 
 }
 
-/* ============================
-   FULL-WIDTH SEARCH BOX
-============================ */
+
 .umkm-search-wrapper {
   width: 100%;
   margin-bottom: 1rem;
@@ -197,7 +185,7 @@
   padding: 0.8rem 1.2rem;
   gap: 0.7rem;
 
-  width: 100%;   /* FULL WIDTH */
+  width: 100%;
   box-sizing: border-box;
 
   box-shadow: 0 3px 6px rgba(0,0,0,0.1);
@@ -238,7 +226,7 @@
   display: block;
 }
 
-/* make marker icons adapt to satellite mode (we will add class to #umkmMap) */
+
 #umkmMap.satellite-on .marker-icon {
   color: white !important;
   filter: drop-shadow(0 0 6px rgba(0,0,0,0.6));
@@ -283,15 +271,15 @@
   line-height: 1;
 }
 
-/* Marker GPS ala Google Maps (Titik Biru) */
+
 .user-gps-marker {
-  background-color: #4285F4; /* Warna Biru Google */
-  border: 3px solid white;   /* Garis tepi putih */
-  border-radius: 50%;        /* Membuat jadi bulat sempurna */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* Bayangan agar terlihat mengambang */
-  box-sizing: border-box;    /* Agar border dihitung dalam ukuran total */
+  background-color: #4285F4;
+  border: 3px solid white;  
+  border-radius: 50%;       
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-sizing: border-box;   
   
-  /* Animasi denyut (opsional, agar terlihat hidup) */
+ 
   animation: pulse-blue 2s infinite;
 }
 
@@ -301,7 +289,7 @@
   100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
 }
 
-/* Animasi Putar untuk Loading GPS */
+
 @keyframes spin-icon {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -310,21 +298,21 @@
 .spin-animation {
   display: inline-block;
   
-  /* 0.5s = Sangat Cepat (Setengah detik per putaran) */
-  /* linear = Kecepatan Stabil/Konstan (Seperti kipas angin) */
+ 
+ 
   animation: spin-icon 1.5s infinite linear;
 }
 
 .info-umkm {
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Mengisi sisa ruang (40% - gap) */
+  flex-grow: 1;
   gap: 1rem;
-  padding: 1.5rem; /* Sedikit dibesarkan paddingnya */
+  padding: 1.5rem;
   border-radius: 2rem;
   background: #f3f4f7;
   
-  /* Opsional: Agar kalau kontennya sedikit, dia tetap punya tinggi minimal */
+ 
   min-height: 100%; 
   scroll-margin-top: 105px;
 }
@@ -375,28 +363,28 @@
   
 }
 
-/* CSS Tambahan untuk Info Panel Dinamis */
 
-/* Agar ikon dan teks di dalam card rapi */
+
+
 .info-umkm-card {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem; /* Jarak icon dan teks */
+    gap: 0.5rem;
     padding: 0.75rem 1.2rem;
     background: #3b719f; 
     color: white;
     border-radius: 2rem;
 }
 
-/* Styling Container Produk */
+
 .card-produk {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
-/* Styling Item Produk Individual */
+
 .produk-item {
     background: white;
     border-radius: 1rem;
@@ -404,7 +392,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Rata kiri */
+    align-items: flex-start;
     text-align: left;
     transition: transform 0.2s;
 }
@@ -435,7 +423,7 @@
     color: #333;
     line-height: 1.2;
     
-    /* Membatasi nama jadi 2 baris saja biar rapi */
+   
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -446,10 +434,10 @@
     font-size: 0.85rem;
     font-weight: 500;
     margin: 0;
-    color: #e67e22; /* Warna oranye/emas untuk harga */
+    color: #e67e22;
 }
 
-/* Styling Foto Utama agar defaultnya hidden/rapi */
+
 #u-foto[src=""] {
     display: none;
 }
@@ -473,14 +461,14 @@
   font-weight: 600;
 }
 
-/* Garis putus-putus */
+
 .license-map::after {
   content: "";
   position: absolute;
   left: 0;
-  bottom: -1px; /* jarak dari teks */
+  bottom: -1px;
   width: 100%;
-  height: 4px; /* tebal garis */
+  height: 4px;
 
   background-image: linear-gradient(
     to right,
@@ -489,7 +477,7 @@
     transparent 50%,
     transparent 100%
   );
-  background-size: 4px 2px; /* panjang setiap dash */
+  background-size: 4px 2px;
   background-repeat: repeat-x;
 
   opacity: 0.7;
@@ -524,11 +512,11 @@
 .umkm-instagram{
   background: radial-gradient(
     circle at 30% 107%, 
-    #FEDA77 0%,   /* Yellow */
-    #F58529 5%,   /* Orange */
-    #DD2A7B 45%,  /* Pink */
-    #8134AF 60%,  /* Purple */
-    #515BD4 90%   /* Blue */
+    #FEDA77 0%,  
+    #F58529 5%,  
+    #DD2A7B 45%, 
+    #8134AF 60%, 
+    #515BD4 90%  
   );
 
   flex-grow: 0;
@@ -575,12 +563,12 @@
   }
 
   #umkmMap {
-    width: 100%; /* Full width di HP */
-    aspect-ratio: 4 / 5; /* Lebih kotak di HP biar enak dilihat */
+    width: 100%;
+    aspect-ratio: 4 / 5;
   }
 
   .info-umkm {
-    width: 100%; /* Full width di HP */
+    width: 100%;
   }
 
   .info-umkm-content-1{
@@ -588,15 +576,15 @@
   }
 
   .info-umkm-content-1 .material-symbols-rounded {
-    /* 'inherit' akan memaksanya menjadi 0.7rem juga */
-    /* Atau gunakan misal 1.2em agar sedikit lebih besar dari teks */
+   
+   
     font-size: 1rem; 
   }
 
   .info-umkm-content-1 img {
-    /* Kita timpa width="30" bawaan HTML */
-    width: 1rem; /* Ukurannya akan 1.5x dari font-size (sekitar 16-17px) */
-    height: auto; /* Jaga aspek rasio */
+   
+    width: 1rem;
+    height: auto;
   }
 
 }
